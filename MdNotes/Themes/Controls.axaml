@@ -1,0 +1,235 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:MdNotes.Views.Shell">
+    <!-- Path.icon: 18x18 icon with muted stroke -->
+    <Style Selector="Path.icon">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="Transparent" />
+        <Setter Property="Stroke" Value="{DynamicResource MdTextMuted}" />
+        <Setter Property="StrokeThickness" Value="2" />
+        <Setter Property="StrokeLineCap" Value="Round" />
+        <Setter Property="StrokeJoin" Value="Round" />
+    </Style>
+
+    <!-- Button.primary: primary action button -->
+    <Style Selector="Button.primary">
+        <Setter Property="Background" Value="{DynamicResource MdAccent}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- Button.primary pointerover state -->
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdAccent}" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <!-- Button.icon: 36x36 transparent icon button -->
+    <Style Selector="Button.icon">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- Button.icon pointerover state -->
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdHover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- Button.icon pressed state -->
+    <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdHover}" />
+    </Style>
+
+    <!-- Button.icon active state -->
+    <Style Selector="Button.icon.active /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdAccentSoft}" />
+    </Style>
+
+    <!-- Button.icon active + Path.icon -->
+    <Style Selector="Button.icon.active Path.icon">
+        <Setter Property="Stroke" Value="{DynamicResource MdAccent}" />
+    </Style>
+
+    <!-- Button.icon pointerover + Path.icon (but not when active) -->
+    <Style Selector="Button.icon:not(.active):pointerover Path.icon">
+        <Setter Property="Stroke" Value="{DynamicResource MdText}" />
+    </Style>
+
+    <!-- ToggleButton.option: small glyph toggle inside the find box (Aa, ab, .*) -->
+    <Style Selector="ToggleButton.option">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="2,0,0,0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="ToggleButton.option TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource MdTextMuted}" />
+    </Style>
+
+    <Style Selector="ToggleButton.option:checked TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource MdAccent}" />
+    </Style>
+
+    <Style Selector="ToggleButton.option:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdHover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ToggleButton.option:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdAccentSoft}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ToggleButton.option:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdAccentSoft}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- ToggleButton.expander: the chevron collapsing a note's matches -->
+    <Style Selector="ToggleButton.expander">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="ToggleButton.expander Path.icon">
+        <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    </Style>
+
+    <Style Selector="ToggleButton.expander:checked Path.icon">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+
+    <!-- Fluent fills a checked ToggleButton with the accent; the chevron must stay a bare glyph -->
+    <Style Selector="ToggleButton.expander:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ToggleButton.expander:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdHover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ToggleButton.expander:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource MdHover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- TextBox.editor: no border, large font -->
+    <Style Selector="TextBox.editor">
+        <Setter Property="Background" Value="{DynamicResource MdSurface}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="LineHeight" Value="26" />
+        <Setter Property="CaretBrush" Value="{DynamicResource MdAccent}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource MdAccentSoft}" />
+    </Style>
+
+    <!-- TextBox.editor pointerover - remove Fluent border -->
+    <Style Selector="TextBox.editor:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource MdSurface}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- TextBox.editor focus - remove Fluent border -->
+    <Style Selector="TextBox.editor:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource MdSurface}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+
+    <!-- TextBox.search: search field with border -->
+    <Style Selector="TextBox.search">
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Background" Value="{DynamicResource MdSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MdBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <!-- TextBox.search focus state -->
+    <Style Selector="TextBox.search:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource MdAccent}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- GridSplitter -->
+    <Style Selector="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource MdBorder}" />
+        <Setter Property="MinWidth" Value="1" />
+    </Style>
+
+    <!-- TreeViewItem: row styling -->
+    <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="4,0" />
+    </Style>
+
+    <!-- Tree row highlighted as the drop target while dragging into a folder -->
+    <Style Selector="Border.drop">
+        <Setter Property="Background" Value="{DynamicResource MdAccentSoft}" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+
+    <!-- TreeViewItem PART_LayoutRoot border corner radius -->
+    <Style Selector="TreeViewItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+
+    <!-- ListBoxItem: row styling -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Margin" Value="4,1" />
+    </Style>
+
+    <!-- ModalOverlay: the scrim and card every overlay used to carry its own copy of -->
+    <Style Selector="shell|ModalOverlay">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Scrim" Background="#80000000" />
+                    <Border Name="PART_Card"
+                            Width="{TemplateBinding CardWidth}"
+                            MaxHeight="{TemplateBinding CardMaxHeight}"
+                            Margin="{TemplateBinding CardMargin}"
+                            Padding="{TemplateBinding CardPadding}"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Center"
+                            Background="{DynamicResource MdSurface}"
+                            BorderBrush="{DynamicResource MdBorder}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            BoxShadow="0 8 32 0 #40000000">
+                        <ContentPresenter Content="{TemplateBinding Content}" />
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MdNotes Architecture Review</title>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#ffffff; --panel-2:#f4f4f2; --ink:#1c1c1a; --ink-2:#55544f;
+  --ink-3:#86847c; --rule:#e3e2dd; --rule-2:#d2d0c9; --accent:#5b4bd6;
+  --crit:#b3261e; --high:#b5540c; --med:#7a6a10; --low:#4a6b57; --good:#2f6b4f;
+  --code-bg:#f2f1ee; --mark:#fdf3c9;
+  --sev-crit-bg:#fbeceb; --sev-high-bg:#fcf0e4; --sev-med-bg:#faf6e0; --sev-low-bg:#edf3ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16161a; --panel:#1e1e23; --panel-2:#26262c; --ink:#e9e8e4; --ink-2:#b3b1aa;
+    --ink-3:#817f78; --rule:#2e2e35; --rule-2:#3c3c45; --accent:#a99bff;
+    --crit:#ff8a80; --high:#ffb072; --med:#e3cf6a; --low:#8fc9a8; --good:#7fd0a6;
+    --code-bg:#24242a; --mark:#4a4222;
+    --sev-crit-bg:#2e1c1b; --sev-high-bg:#2d2218; --sev-med-bg:#2a2718; --sev-low-bg:#1d2722;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16161a; --panel:#1e1e23; --panel-2:#26262c; --ink:#e9e8e4; --ink-2:#b3b1aa;
+  --ink-3:#817f78; --rule:#2e2e35; --rule-2:#3c3c45; --accent:#a99bff;
+  --crit:#ff8a80; --high:#ffb072; --med:#e3cf6a; --low:#8fc9a8; --good:#7fd0a6;
+  --code-bg:#24242a; --mark:#4a4222;
+  --sev-crit-bg:#2e1c1b; --sev-high-bg:#2d2218; --sev-med-bg:#2a2718; --sev-low-bg:#1d2722;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:1.5rem}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.65 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:62rem; margin:0 auto; padding:0 16px 6rem}
+code,kbd,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+code{background:var(--code-bg); padding:.1em .35em; border-radius:4px; font-size:.86em; word-break:break-word}
+pre{background:var(--code-bg); border:1px solid var(--rule); border-radius:8px; padding:.9rem 1rem;
+    overflow-x:auto; font-size:.82rem; line-height:1.55}
+pre code{background:none; padding:0; font-size:inherit}
+a{color:var(--accent)}
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.011em}
+h1{font-size:2.1rem; margin:0 0 .35rem; font-weight:700}
+h2{font-size:1.32rem; margin:3.2rem 0 .2rem; font-weight:650; scroll-margin-top:1rem}
+h2 .num{color:var(--ink-3); font-weight:500; margin-right:.5rem; font-variant-numeric:tabular-nums}
+h3{font-size:1.02rem; margin:1.9rem 0 .5rem; font-weight:650}
+h2 + .rule{height:2px; background:linear-gradient(90deg,var(--accent),transparent); margin:.55rem 0 1.4rem; border-radius:2px}
+p{margin:.7rem 0}
+ul,ol{margin:.6rem 0; padding-left:1.25rem}
+li{margin:.3rem 0}
+header.masthead{padding:3.2rem 0 1.6rem; border-bottom:1px solid var(--rule); margin-bottom:.5rem}
+.sub{color:var(--ink-2); font-size:1.02rem; margin:.4rem 0 1.1rem; max-width:48rem}
+.meta{display:flex; flex-wrap:wrap; gap:.4rem .5rem; font-size:.78rem}
+.chip{background:var(--panel-2); border:1px solid var(--rule); border-radius:999px;
+      padding:.2rem .65rem; color:var(--ink-2); white-space:nowrap}
+.chip b{color:var(--ink); font-weight:600}
+nav.toc{background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:1rem 1.15rem; margin:2rem 0}
+nav.toc h4{margin:0 0 .6rem; font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3)}
+nav.toc ol{margin:0; padding-left:1.35rem; columns:2; column-gap:2rem; font-size:.88rem}
+nav.toc li{margin:.18rem 0; break-inside:avoid}
+nav.toc a{text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media (max-width:640px){nav.toc ol{columns:1}}
+.card{background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:1.1rem 1.2rem; margin:1rem 0}
+.callout{border-left:3px solid var(--accent); background:var(--panel); border-radius:0 10px 10px 0;
+         padding:.85rem 1.1rem; margin:1.1rem 0; font-size:.95rem}
+.callout b{color:var(--ink)}
+.finding{background:var(--panel); border:1px solid var(--rule); border-radius:12px; margin:1.3rem 0; overflow:hidden}
+.finding > .head{display:flex; gap:.7rem; align-items:flex-start; padding:.95rem 1.15rem .7rem;
+                 border-bottom:1px solid var(--rule)}
+.finding.crit > .head{background:var(--sev-crit-bg)}
+.finding.high > .head{background:var(--sev-high-bg)}
+.finding.med > .head{background:var(--sev-med-bg)}
+.finding.low > .head{background:var(--sev-low-bg)}
+.finding .fid{font:600 .74rem/1.5 ui-monospace,monospace; color:var(--ink-3); padding-top:.2rem; flex:none}
+.finding h3{margin:0; font-size:1rem; flex:1}
+.finding .body{padding:.3rem 1.15rem 1.05rem}
+.finding .body > p:first-child{margin-top:.7rem}
+.lbl{font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-3);
+     font-weight:650; display:block; margin:1rem 0 .25rem}
+.badges{display:flex; gap:.35rem; flex-wrap:wrap; flex:none; padding-top:.1rem}
+.b{font-size:.68rem; font-weight:650; letter-spacing:.05em; text-transform:uppercase;
+   padding:.16rem .5rem; border-radius:5px; border:1px solid currentColor; white-space:nowrap}
+.b.crit{color:var(--crit)} .b.high{color:var(--high)} .b.med{color:var(--med)} .b.low{color:var(--low)}
+.b.conf{color:var(--ink-3)}
+.b.st{border-style:dashed}
+.b.st.done{color:var(--good); border-style:solid}
+.b.st.part{color:var(--high)}
+.b.st.open{color:var(--crit)}
+.status{border-left:3px solid var(--good); background:var(--panel-2);
+        border-radius:0 8px 8px 0; padding:.55rem .85rem; margin:1.2rem 0 .1rem; font-size:.9rem}
+.status.part{border-left-color:var(--high)}
+.status.open{border-left-color:var(--crit)}
+.status p{margin:.3rem 0}
+.status .lbl{margin:0 0 .35rem}
+td.st{white-space:nowrap; font-weight:650; font-size:.76rem}
+.st-done{color:var(--good)} .st-part{color:var(--high)} .st-open{color:var(--crit)}
+.banner{background:var(--panel); border:1px solid var(--rule); border-left:3px solid var(--good);
+        border-radius:0 12px 12px 0; padding:.85rem 1.1rem; margin:1.6rem 0; font-size:.9rem}
+.banner p{margin:.35rem 0}
+.ev{background:var(--panel-2); border:1px solid var(--rule); border-radius:8px; padding:.6rem .8rem; margin:.3rem 0}
+.ev ul{margin:0; padding-left:1.1rem; font-size:.88rem}
+.ev li{margin:.22rem 0}
+.dir{border-left:2px solid var(--rule-2); padding-left:.9rem; color:var(--ink-2); font-size:.94rem}
+table{width:100%; border-collapse:collapse; margin:1.1rem 0; font-size:.83rem}
+th,td{text-align:left; padding:.55rem .6rem; border-bottom:1px solid var(--rule); vertical-align:top}
+th{font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:650;
+   border-bottom:1px solid var(--rule-2); position:sticky; top:0; background:var(--bg)}
+tbody tr:hover{background:var(--panel-2)}
+td.loc{font-family:ui-monospace,monospace; font-size:.76rem; color:var(--ink-2); white-space:nowrap}
+td.sev{white-space:nowrap; font-weight:650; font-size:.76rem}
+.sev-crit{color:var(--crit)} .sev-high{color:var(--high)} .sev-med{color:var(--med)} .sev-low{color:var(--low)}
+.scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.good{border-left:3px solid var(--good)}
+.good h3{color:var(--good)}
+figure{margin:1.6rem 0}
+figure svg{width:100%; height:auto; display:block; background:var(--panel);
+            border:1px solid var(--rule); border-radius:12px}
+figcaption{font-size:.78rem; color:var(--ink-3); margin-top:.55rem; text-align:center}
+.svg-box{fill:var(--panel-2); stroke:var(--rule-2)}
+.svg-box-accent{fill:var(--panel-2); stroke:var(--accent)}
+.svg-lane{fill:none; stroke:var(--rule); stroke-dasharray:4 4}
+.svg-t{fill:var(--ink); font:600 12px ui-sans-serif,system-ui,sans-serif}
+.svg-s{fill:var(--ink-2); font:10px ui-monospace,monospace}
+.svg-lane-t{fill:var(--ink-3); font:650 10px ui-sans-serif,system-ui,sans-serif; letter-spacing:.09em}
+.svg-arrow{stroke:var(--ink-3); fill:none; stroke-width:1.4}
+.svg-arrow-hot{stroke:var(--crit); fill:none; stroke-width:1.6; stroke-dasharray:5 3}
+.svg-hot-t{fill:var(--crit); font:650 10px ui-sans-serif,system-ui,sans-serif}
+footer{margin-top:4rem; padding-top:1.3rem; border-top:1px solid var(--rule);
+       color:var(--ink-3); font-size:.8rem}
+mark{background:var(--mark); color:var(--ink); padding:0 .2em; border-radius:3px}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+@media (max-width:720px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <h1>MdNotes — Architecture Review</h1>
+  <p class="sub">A read-only architectural assessment of the MdNotes vault-based Markdown editor:
+  what the architecture is, where it is under strain, where it is more complicated than the problem
+  demands, and what should be left exactly as it is.</p>
+  <div class="meta">
+    <span class="chip"><b>Date</b> 2026-09-18</span>
+    <span class="chip"><b>Scope</b> working tree, not HEAD</span>
+    <span class="chip"><b>Source</b> 5 132 LOC across 46 files</span>
+    <span class="chip"><b>Tests</b> 31 files</span>
+    <span class="chip"><b>Stack</b> .NET 10 · Avalonia 12.1.2 · CommunityToolkit.Mvvm</span>
+    <span class="chip"><b>Method</b> static reading only — nothing built, run or modified</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">Current Architecture</a></li>
+    <li><a href="#s3">Architecture Diagram</a></li>
+    <li><a href="#s4">Critical &amp; High Findings</a></li>
+    <li><a href="#s5">Medium &amp; Low Findings</a></li>
+    <li><a href="#s6">Dependency &amp; Coupling Analysis</a></li>
+    <li><a href="#s7">State &amp; Data Flow Analysis</a></li>
+    <li><a href="#s8">Unnecessary Complexity</a></li>
+    <li><a href="#s9">AI-Assisted Development Smells</a></li>
+    <li><a href="#s10">Positive Architectural Decisions</a></li>
+    <li><a href="#s11">Simplification Opportunities</a></li>
+    <li><a href="#s12">Areas Requiring Manual Verification</a></li>
+    <li><a href="#s13">Overall Architecture Assessment</a></li>
+    <li><a href="#summary">Summary Table</a></li>
+  </ol>
+</nav>
+
+<div class="banner">
+  <span class="lbl">Status, re-verified 2026-09-21</span>
+  <p>The report below is the review as written on 2026-09-18 and has not been edited. Each finding now
+  carries a <strong>status badge</strong> and a closing <strong>Status</strong> note recording what was
+  actually done, read back off the working tree at <code>bfacc67</code> rather than from the task log.</p>
+  <p><strong>All 13 fixed.</strong> F2 is the one worth reading closely: the structural half landed
+  first and the content cache followed, but its Status note records what the app still does not do.
+  One new defect of the same shape as F11 was found while fixing it, recorded under F4 and closed by
+  <code>todos.md</code> task 49.</p>
+</div>
+
+<h2 id="s1"><span class="num">1</span>Executive Summary</h2><div class="rule"></div>
+
+<p>MdNotes is a <strong>coherent, deliberately-layered application</strong>. The dependency direction is
+strict and one-way, the domain and service layers contain no UI types at all, filesystem conventions are
+each owned by exactly one class, and the composition root is a single explicit file with no container.
+For a 5 000-line desktop app this is the right shape, and most of it should be left alone.</p>
+
+<p>The strain is concentrated in three places, and they are related:</p>
+
+<ul>
+  <li><strong>Vault identity is process-global mutable state, but every window keeps its own copy of it.</strong>
+      One <code>VaultService</code> is shared across all windows; opening a different vault in one window
+      mutates the root for all of them and tells none of them. This is the only finding in the report that
+      can produce wrong behaviour rather than merely slow or awkward behaviour.</li>
+  <li><strong>There is no index, and every read is synchronous on the UI thread.</strong> Four independent
+      code paths each walk the vault and re-read files from disk — sidebar search does it per keystroke,
+      undebounced. The app has no background I/O at all outside the single-instance pipe.</li>
+  <li><strong><code>MainViewModel</code> is a god object</strong> with nine constructor dependencies,
+      four child view models and the app's only error funnel — and that constructor is written out verbatim
+      at ten test call sites.</li>
+</ul>
+
+<p>On complexity: the architecture is <em>mostly</em> right-sized, but there are
+<strong>four interfaces with a single implementation and no test double</strong>
+(<code>IVaultService</code>, <code>ISearchService</code>, <code>IReplaceService</code>,
+<code>IMarkdownRenderer</code>) that currently buy nothing — while six <em>other</em> interfaces in the same
+folder have real second implementations and clearly earn their place. The more expensive duplication is not
+in the abstractions but in the view layer, where the three modal overlays are copy-pasted chrome, three
+independent theming mechanisms coexist, and diagram colours are a second palette that does not follow the
+first.</p>
+
+<div class="callout">
+<b>The one-line verdict.</b> This is a well-designed small application whose growth has outpaced two of its
+foundations: a shared-mutable vault handle that was never designed for multiple windows, and a
+read-everything-every-time data access pattern that was fine at one feature and is now behind four.
+Neither needs a rewrite; both need a decision about ownership.
+</div>
+
+<h2 id="s2"><span class="num">2</span>Current Architecture</h2><div class="rule"></div>
+
+<h3>Shape</h3>
+<p>A single-process Avalonia desktop app, MVVM via CommunityToolkit.Mvvm source generators, organised in
+four folders that map exactly onto four layers:</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Layer</th><th>Contents</th><th>Depends on</th><th>UI types?</th></tr></thead>
+<tbody>
+<tr><td><code>Models/</code></td><td>Pure data and pure text rules — <code>VaultEntry</code>, <code>SearchOptions</code>, <code>TextMatch</code>, <code>VaultIgnore</code> (the whole ignore-pattern language), <code>NoteTemplate</code> (placeholder substitution + path normalisation)</td><td>nothing</td><td>none</td></tr>
+<tr><td><code>Services/</code></td><td>Filesystem and text: <code>VaultService</code>, <code>SearchService</code>, <code>ReplaceService</code>, <code>MatchFinder</code>, <code>NoteTemplateService</code>, <code>VaultIgnoreService</code>, <code>JsonSettingsService</code>, plus the format-owners <code>IgnoreFile</code>, <code>FolderOrderFile</code>, <code>PathScope</code>, <code>DiacriticFolder</code></td><td><code>Models</code></td><td>none <span class="mono">(grep-verified)</span></td></tr>
+<tr><td><code>ViewModels/</code></td><td><code>MainViewModel</code> + four children: <code>EditorViewModel</code>, <code>SettingsViewModel</code>, <code>QuickSwitcherViewModel</code>, <code>SearchReplaceViewModel</code>; plus <code>TreeNodeViewModel</code></td><td><code>Services</code>, <code>Models</code></td><td><code>Avalonia.Threading</code> (timers), <code>GridLength</code></td></tr>
+<tr><td><code>Views/</code></td><td>Shell (<code>Ribbon</code>, <code>Sidebar</code>, <code>PaneHeader</code>, <code>StatusBar</code>), three modal overlays, two dialogs, and a hand-written Markdown rendering engine under <code>Views/Markdown/</code></td><td>everything</td><td>yes</td></tr>
+</tbody></table></div>
+
+<h3>Composition and lifetime</h3>
+<p><code>Program.cs</code> attempts a single-instance hand-off over a named pipe before any UI exists, then
+starts Avalonia. <code>App.axaml.cs:30-51</code> builds a <code>DialogService</code>, installs a global
+UI-thread exception handler, plants the diagram renderer into a static on <code>MarkdownView</code>, and
+constructs <code>AppSession</code>.</p>
+
+<p><code>AppSession.cs</code> is the composition root and the only place services are instantiated. It holds
+<strong>one</strong> of each service for the process — including one <code>VaultService</code>, so one
+<code>FileSystemWatcher</code> pair and one settings file serve every window — and creates <strong>one
+<code>MainViewModel</code> + <code>MainWindow</code> per open subject</strong> (<code>AppSession.cs:46-63</code>).
+A second launch does not start a second process; its file arrives over the pipe and becomes another window
+(<code>App.axaml.cs:45-48</code>). Wiring is hand-written constructor injection; there is no DI container,
+and no view ever resolves a service.</p>
+
+<h3>Where state lives</h3>
+<p><strong>The filesystem is the source of truth.</strong> There is no in-memory model of the vault that
+survives a refresh: <code>MainViewModel.RefreshTree</code> discards the whole <code>Tree</code> collection and
+rebuilds it from <code>_vault.GetTree()</code> on every change. Two sidecar conventions extend the filesystem
+rather than shadowing it — <code>.order</code> per folder for manual ordering, and <code>.mdnotesignore</code>
+at the root for exclusions. User preferences live in one JSON file under <code>ApplicationData</code>, written
+through on every property set.</p>
+
+<h3>Background and async work</h3>
+<p>There is effectively none. <code>SingleInstance.Listen()</code> is the only <code>Task.Run</code> in the
+application. Every vault read, walk, search and write happens synchronously on the UI thread.
+<code>DispatcherTimer</code> is used for debouncing in three places (preview 250 ms, autosave configurable,
+tree refresh 300 ms, rescan 250 ms) — these defer work but do not move it off the thread. The only genuinely
+asynchronous surface is <code>IDialogService</code>, which is async because modal dialogs are.</p>
+
+<h3>Search and indexing</h3>
+<p><strong>There is no index.</strong> Every query walks the directory tree and reads matching files from
+disk at the moment it is asked. Four separate code paths do this, each with its own matching rules
+(see <a href="#f7">F7</a>). The exclusion list is the only caching layer: a compiled <code>VaultIgnore</code>
+kept behind a stamp of the ignore files' size and mtime (<code>VaultService.cs:225-239</code>), which is
+checked once per enumeration rather than per entry.</p>
+
+<h3>Error propagation</h3>
+<p>Services throw; <code>MainViewModel.Guard</code>/<code>GuardAsync</code>
+(<code>MainViewModel.cs:572-594</code>) catch and show a dialog. Two subsystems deliberately never throw —
+<code>IgnoreFile</code> and <code>NoteTemplateService</code> resolve every failure to "nothing configured", on
+the reasoning that a broken template must not block note creation. A second, process-wide catch-all sits in
+<code>App.axaml.cs:33-37</code> (see <a href="#f12">F12</a>).</p>
+
+<h2 id="s3"><span class="num">3</span>Architecture Diagram</h2><div class="rule"></div>
+
+<figure>
+<svg viewBox="0 0 880 560" role="img" aria-label="Layered architecture diagram of MdNotes showing Views, ViewModels, Services and Models layers over the filesystem, with the shared VaultService highlighted">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
+    </marker>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--crit)"/>
+    </marker>
+  </defs>
+
+  <!-- lanes -->
+  <rect class="svg-lane" x="14" y="14"  width="852" height="112" rx="10"/>
+  <rect class="svg-lane" x="14" y="142" width="852" height="112" rx="10"/>
+  <rect class="svg-lane" x="14" y="270" width="852" height="150" rx="10"/>
+  <rect class="svg-lane" x="14" y="436" width="852" height="52"  rx="10"/>
+  <text class="svg-lane-t" x="28" y="34">VIEWS</text>
+  <text class="svg-lane-t" x="28" y="162">VIEW MODELS</text>
+  <text class="svg-lane-t" x="28" y="290">SERVICES · MODELS</text>
+  <text class="svg-lane-t" x="28" y="456">PERSISTENCE</text>
+
+  <!-- views -->
+  <rect class="svg-box" x="110" y="44" width="128" height="62" rx="8"/>
+  <text class="svg-t" x="174" y="70" text-anchor="middle">MainWindow</text>
+  <text class="svg-s" x="174" y="88" text-anchor="middle">Ribbon · Sidebar</text>
+  <rect class="svg-box" x="256" y="44" width="150" height="62" rx="8"/>
+  <text class="svg-t" x="331" y="70" text-anchor="middle">3 overlays</text>
+  <text class="svg-s" x="331" y="88" text-anchor="middle">switcher/replace/settings</text>
+  <rect class="svg-box-accent" x="424" y="44" width="164" height="62" rx="8"/>
+  <text class="svg-t" x="506" y="70" text-anchor="middle">Views/Markdown</text>
+  <text class="svg-s" x="506" y="88" text-anchor="middle">render engine · static cache</text>
+  <rect class="svg-box" x="606" y="44" width="140" height="62" rx="8"/>
+  <text class="svg-t" x="676" y="70" text-anchor="middle">DialogService</text>
+  <text class="svg-s" x="676" y="88" text-anchor="middle">impl of IDialogService</text>
+
+  <!-- view models -->
+  <rect class="svg-box-accent" x="110" y="172" width="180" height="62" rx="8"/>
+  <text class="svg-t" x="200" y="198" text-anchor="middle">MainViewModel</text>
+  <text class="svg-s" x="200" y="216" text-anchor="middle">595 lines · 9 deps</text>
+  <rect class="svg-box" x="308" y="172" width="122" height="62" rx="8"/>
+  <text class="svg-t" x="369" y="198" text-anchor="middle">Editor</text>
+  <text class="svg-s" x="369" y="216" text-anchor="middle">text · autosave</text>
+  <rect class="svg-box" x="448" y="172" width="122" height="62" rx="8"/>
+  <text class="svg-t" x="509" y="198" text-anchor="middle">SearchReplace</text>
+  <text class="svg-s" x="509" y="216" text-anchor="middle">tri-state · undo</text>
+  <rect class="svg-box" x="588" y="172" width="110" height="62" rx="8"/>
+  <text class="svg-t" x="643" y="198" text-anchor="middle">Switcher</text>
+  <rect class="svg-box" x="716" y="172" width="110" height="62" rx="8"/>
+  <text class="svg-t" x="771" y="198" text-anchor="middle">Settings</text>
+
+  <!-- services -->
+  <rect class="svg-box-accent" x="110" y="304" width="190" height="86" rx="8"/>
+  <text class="svg-t" x="205" y="330" text-anchor="middle">VaultService</text>
+  <text class="svg-s" x="205" y="348" text-anchor="middle">ONE per process</text>
+  <text class="svg-s" x="205" y="364" text-anchor="middle">mutable RootPath</text>
+  <text class="svg-s" x="205" y="380" text-anchor="middle">2 FileSystemWatchers</text>
+  <rect class="svg-box" x="318" y="304" width="120" height="86" rx="8"/>
+  <text class="svg-t" x="378" y="330" text-anchor="middle">Search</text>
+  <text class="svg-s" x="378" y="350" text-anchor="middle">walk + read</text>
+  <text class="svg-s" x="378" y="366" text-anchor="middle">every note</text>
+  <rect class="svg-box" x="456" y="304" width="120" height="86" rx="8"/>
+  <text class="svg-t" x="516" y="330" text-anchor="middle">Replace</text>
+  <text class="svg-s" x="516" y="350" text-anchor="middle">MatchFinder</text>
+  <text class="svg-s" x="516" y="366" text-anchor="middle">+ undo snapshot</text>
+  <rect class="svg-box" x="594" y="304" width="112" height="86" rx="8"/>
+  <text class="svg-t" x="650" y="330" text-anchor="middle">Template</text>
+  <text class="svg-t" x="650" y="348" text-anchor="middle">Ignore</text>
+  <text class="svg-s" x="650" y="368" text-anchor="middle">policy layers</text>
+  <rect class="svg-box" x="724" y="304" width="102" height="86" rx="8"/>
+  <text class="svg-t" x="775" y="330" text-anchor="middle">Settings</text>
+  <text class="svg-s" x="775" y="350" text-anchor="middle">JSON</text>
+  <text class="svg-s" x="775" y="366" text-anchor="middle">write-through</text>
+
+  <!-- persistence -->
+  <rect class="svg-box" x="110" y="448" width="330" height="30" rx="6"/>
+  <text class="svg-t" x="275" y="468" text-anchor="middle">vault folder — *.md · .order · .mdnotesignore</text>
+  <rect class="svg-box" x="458" y="448" width="240" height="30" rx="6"/>
+  <text class="svg-t" x="578" y="468" text-anchor="middle">ApplicationData/settings.json</text>
+
+  <!-- arrows -->
+  <path class="svg-arrow" marker-end="url(#a)" d="M174,106 L190,166"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M331,106 L369,166"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M200,234 L205,298"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M369,234 L378,298"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M509,234 L516,298"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M643,234 L650,298"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M771,234 L775,298"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M378,390 L300,444"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M516,390 L330,444"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M205,390 L230,444"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M775,390 L640,444"/>
+  <path class="svg-arrow" marker-end="url(#a)" d="M676,106 L676,166 L698,166 L698,172"/>
+
+  <!-- hot path: shared vault fan-in + watcher fan-out -->
+  <path class="svg-arrow-hot" marker-end="url(#ah)" d="M110,347 L64,347 L64,203 L110,203"/>
+  <text class="svg-hot-t" x="24" y="272">F1 · shared</text>
+  <text class="svg-hot-t" x="24" y="285">root, per-</text>
+  <text class="svg-hot-t" x="24" y="298">window copy</text>
+  <path class="svg-arrow-hot" marker-end="url(#ah)" d="M378,304 L378,268 L200,268 L200,240"/>
+  <text class="svg-hot-t" x="392" y="264">F2 · walk + read per keystroke, on the UI thread</text>
+</svg>
+<figcaption>Layer boundaries are clean and one-way (grey arrows). The two red paths are the findings:
+one shared <code>VaultService</code> feeding N windows that each cache its identity, and unindexed
+synchronous vault reads driven directly by keystrokes.</figcaption>
+</figure>
+
+<h2 id="s4"><span class="num">4</span>Critical &amp; High Findings</h2><div class="rule"></div>
+
+<div class="finding crit" id="f1">
+  <div class="head">
+    <span class="fid">F1</span>
+    <h3>One shared <code>VaultService</code> feeds N windows, and switching the vault invalidates none of them</h3>
+    <span class="badges"><span class="b crit">Critical</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Vault identity is process-global mutable state on a single shared service,
+    but each window's <code>MainViewModel</code> keeps its own derived copy of that identity. Changing the
+    vault in one window mutates the root for every window and notifies no one.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>AppSession.cs:32</code> — one <code>VaultService</code> for the process; the class comment
+          at <code>:10-11</code> states the intent: "Windows share the vault, so the file watcher and the
+          settings file are opened once however many windows are up."</li>
+      <li><code>AppSession.cs:46-63</code> — <code>NewWindow</code> creates a fresh
+          <code>MainViewModel</code> per window, all handed the same <code>_vault</code>.</li>
+      <li><code>MainViewModel.cs:499-510</code> — <code>OpenVaultAt</code> calls
+          <code>_vault.Open(path)</code>, then sets its <em>own</em> <code>VaultPath</code>,
+          <code>VaultName</code>, clears its own <code>SearchQuery</code>/<code>SelectedNode</code> and
+          rebuilds its own <code>Tree</code>. Nothing is broadcast.</li>
+      <li><code>VaultService.cs:18-57</code> — <code>Open</code> disposes and recreates both watchers and
+          reassigns <code>RootPath</code>, but never raises <code>VaultChanged</code>.</li>
+      <li><code>MainViewModel.cs:59</code> — <code>HasVault =&gt; _vault.RootPath is not null</code> reads the
+          shared value, while <code>VaultName</code> (<code>:56</code>) is a per-window cached string.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>After window A opens a different vault, window B is in a genuinely inconsistent state: its sidebar
+    and title still name the old vault, but every operation it performs resolves against the new root.
+    The next watcher event — a file created anywhere in the <em>new</em> vault — fires
+    <code>MainViewModel._vaultChanged</code> in window B too (<code>MainViewModel.cs:113-118</code>), and its
+    300 ms timer calls <code>RefreshTree</code>, which repopulates B's tree from the new vault while B's
+    header still reads the old name.</p>
+    <p>The knock-on is worse than cosmetic. <code>EditorViewModel.IsLooseFile</code>
+    (<code>EditorViewModel.cs:41-42</code>) is computed as "is my path under <code>_vault.RootPath</code>",
+    and <code>SaveMode</code> (<code>:48</code>) returns <code>Manual</code> for a loose file regardless of
+    the user's setting. So switching vaults in window A can flip window B's open note from autosaved to
+    manual-save, or the reverse, with no visible cause — the status bar text
+    (<code>SaveStatus</code>, <code>:51-58</code>) will not even update, because nothing raises
+    <code>PropertyChanged</code> for it.</p>
+    <p>This is the one finding in the report where the consequence is incorrect behaviour rather than cost.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Decide whether the vault is a process-level singleton or a window-level subject, and make
+    the code say so. If it stays shared, vault identity should be a single observable owned by the service —
+    windows should read it rather than cache it, and <code>Open</code> should announce itself on the same
+    channel <code>VaultChanged</code> already uses, so the existing per-window refresh path handles it for
+    free. If instead each window may hold its own vault, the sharing in <code>AppSession</code> is the thing
+    to unwind, and the cost is one watcher pair per window. The middle position — shared handle, cached
+    copies, no notification — is the only one that cannot be made correct.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>f455fa9</code> (review phase 1), by the first of the
+    two options offered. <code>VaultService</code> raises <code>VaultOpened</code> after <code>Open</code>
+    retargets the vault (<code>VaultService.cs:29,82</code>), and the per-window copies are gone:
+    <code>VaultPath</code>, <code>VaultName</code> and <code>HasVault</code> now read
+    <code>_vault.RootPath</code> (<code>VaultWorkspaceViewModel.cs:63-70</code>).
+    <code>OnVaultOpened</code> (<code>:458</code>) resets the title, the tree, the search and the one-step
+    undo, and calls <code>_editor.NotifyVaultChanged()</code> &mdash; which closes the
+    <code>IsLooseFile</code>/<code>SaveMode</code> knock-on this finding described.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding high" id="f2">
+  <div class="head">
+    <span class="fid">F2</span>
+    <h3>No index, and every vault read is synchronous on the UI thread</h3>
+    <span class="badges"><span class="b high">High</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> The application has no background I/O. Four independent code paths each walk
+    the vault and re-read files from disk on demand, and the highest-frequency one is driven directly by
+    keystrokes with no debounce.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Grep across <code>MdNotes/</code>: the only <code>Task.Run</code> in the application is
+          <code>SingleInstance.cs:51</code>. No <code>async</code> method exists anywhere in
+          <code>Services/</code>.</li>
+      <li><code>MainViewModel.cs:475-483</code> — <code>OnSearchQueryChanged</code> calls
+          <code>_search.Search(value)</code> directly on every keystroke. <code>SearchService.Search</code>
+          (<code>SearchService.cs:9-31</code>) enumerates every note and calls <code>vault.Read(path)</code>
+          on each, then folds diacritics over the whole content. No <code>DispatcherTimer</code> guards this
+          path, though three other paths in the app have one.</li>
+      <li><code>QuickSwitcherViewModel.cs:73-84</code> — <code>OnQueryChanged</code> →
+          <code>RefreshResults</code> → <code>_vault.GetTree()</code>, a full recursive directory walk, per
+          keystroke.</li>
+      <li><code>VaultIgnoreService.cs:42-53</code> — <code>Probe()</code> ends in
+          <code>vault.EnumerateNotes().Count()</code>, a whole-vault walk. It is called from
+          <code>SettingsViewModel.ExcludeStatus</code> (<code>SettingsViewModel.cs:90-105</code>), which is
+          re-read whenever the panel opens and on every edit to the pattern text.</li>
+      <li><code>SearchReplaceViewModel.Rescan</code> (<code>:98-132</code>) is debounced 250 ms, but still
+          runs <code>_replace.Find</code> — read-every-note — synchronously on the UI thread.</li>
+      <li><code>MainViewModel.RefreshTree</code> (<code>:512-527</code>) discards and rebuilds the entire
+          tree, triggered by a 300 ms timer on any watcher event.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Cost scales with vault size on a thread that must stay responsive. Typing five characters into the
+    sidebar search box reads every note in the vault five times. The exclusion feature exists precisely
+    because people point MdNotes at folders containing <code>node_modules</code> and code repositories — and
+    it correctly prevents <em>descending</em> into them (<code>VaultService.cs:272-289</code>) — but for the
+    notes that remain, the per-keystroke full read is unchanged.</p>
+    <p>Architecturally the more important consequence is that <strong>there is nowhere to put an index.</strong>
+    Each of the four paths owns its own traversal and its own matching, so introducing caching means changing
+    four things, and any future feature that needs to ask a question about the vault (backlinks, tags, a graph
+    view, note counts) has no choice but to add a fifth walk.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">The smallest useful move is not an index — it is to give the vault a single place where
+    "what is in this vault" is answered, so that the answer can later be cached, invalidated by the watcher
+    that already exists, and computed off-thread without touching four call sites. The existing
+    <code>VaultIgnore</code> stamp-and-cache mechanism (<code>VaultService.cs:225-239</code>) is a working
+    precedent for exactly this pattern in this codebase. Debouncing sidebar search is a separate, much
+    smaller fix, and it does not address the underlying structure.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Partly fixed</strong> in <code>9bf07e5</code> (review phase 2).
+    The structural half &mdash; the part this finding called the more important one &mdash; is done:
+    <code>GetTree</code>, <code>GetNotes</code> and <code>GetFolders</code> all read one cached
+    <code>VaultSnapshot</code>, invalidated by a revision counter and the watcher that already existed
+    (<code>VaultService.cs:323-349</code>). That is the single place the report asked for, built on the
+    stamp-and-cache precedent it pointed at. Sidebar search is debounced 250&nbsp;ms
+    (<code>VaultWorkspaceViewModel.cs:414</code>), the quick switcher and
+    <code>VaultIgnoreService.Probe</code> read the snapshot instead of re-walking, and note images are
+    cached across preview rebuilds.</p>
+    <p>The rest followed in <code>todos.md</code> task 47, as a content cache rather than as background
+    I/O &mdash; the snapshot cached paths, this caches the text.
+    <code>Services/NoteContentCache.cs</code> sits behind <code>VaultService.Read</code>, so all five
+    readers benefit from one change; it is keyed by path plus write stamp, bounded by total characters,
+    and the app's own writes are put in directly rather than left for a stamp to notice. Measured over
+    2000 notes: <strong>267&nbsp;ms per search to 91&nbsp;ms</strong>.</p>
+    <p><strong>What the measurement then showed:</strong> 61 of those 91&nbsp;ms is the
+    <code>FileInfo</code> stat &mdash; 2000 syscalls asking whether anything changed &mdash; and only
+    ~30&nbsp;ms is the fold and the match. The freshness check can be removed by carrying
+    <code>NotifyFilters.LastWrite</code> into a handler that drops one content entry without rebuilding
+    the tree, but that trades a syscall for trusting the watcher, so it is left as a decision rather than
+    taken as a tuning. The application still has no background I/O, which remains true of every path
+    here.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding high" id="f3">
+  <div class="head">
+    <span class="fid">F3</span>
+    <h3><code>MainViewModel</code> has become the god object, and its constructor is the blast radius</h3>
+    <span class="badges"><span class="b high">High</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> One class holds nine service dependencies, owns four child view models,
+    and mediates every feature in the application. Because it is constructed by hand at every test site,
+    each new dependency is a mechanical edit across the test suite.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>MainViewModel.cs</code> is 595 lines — the largest file in the project, 12% of all source.</li>
+      <li>Constructor <code>:66-75</code> takes nine parameters:
+          <code>IVaultService, ISearchService, IReplaceService, ISettingsService, IDialogService,
+          IMarkdownRenderer, IFileAssociationService, INoteTemplateService, IVaultIgnoreService</code>.</li>
+      <li>Responsibilities in one class: vault open/restore, note and folder CRUD, rename, delete, wikilink
+          resolution, drag-and-drop resolution (<code>ResolveDrop</code> <code>:414-435</code>), manual
+          reordering, tree rebuild and selection restoration, sidebar search, view mode, theme mode, loose-file
+          handling, import, file-association registration, and the app's only error funnel
+          (<code>Guard</code>/<code>GuardAsync</code> <code>:572-594</code>).</li>
+      <li>The nine-argument call is written out verbatim at ten sites:
+          <code>MainWindowTests.cs:30,73,143,185,231</code>, <code>NavigationLeakTests.cs:29</code>,
+          <code>SidebarDragTests.cs:72</code>, <code>ExcludeTests.cs:23</code>,
+          <code>LooseFileTests.cs:39</code>, <code>WikiLinkFolderTests.cs:108</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>This is the concrete mechanism by which a small change reaches unrelated areas. The two most recent
+    features each added one dependency, and each therefore touched every test that constructs a window —
+    including tests about diagram caching and drag ordering, which have nothing to do with templates or
+    exclusions. The class is still readable, and the <code>Guard</code> discipline is genuinely good, but the
+    growth vector is clear and unbounded: nothing in the current structure suggests where feature number ten
+    would go instead.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Two things are being conflated: the window's <em>shell</em> state (view mode, theme,
+    sidebar, title) and the <em>vault workspace</em> (tree, selection, CRUD, navigation, search). They have
+    different lifetimes and different dependencies — the shell needs settings and dialogs; the workspace needs
+    the vault, search, templates and exclusions. Splitting along that seam would let each half be constructed
+    and tested on its own. The cheaper, non-architectural palliative is a single test helper that builds a
+    default <code>MainViewModel</code>, which removes the blast radius without addressing the size.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>9bf07e5</code> (review phase 2), along exactly
+    the seam this finding proposed. <code>MainViewModel</code> is <strong>180 lines</strong> and holds the
+    shell only; everything vault-shaped moved to <code>VaultWorkspaceViewModel</code> (544 lines) and the
+    open note to <code>EditorViewModel</code> (227). The nine-parameter constructor is now
+    <code>MainViewModel(AppServices)</code> &mdash; a record whose own doc comment records the
+    fourteen-site edit that caused it. The tenth service, <code>IDiagramRenderer</code>, was one field.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding high" id="f10">
+  <div class="head">
+    <span class="fid">F4</span>
+    <h3>Image rendering reads arbitrary paths off the UI thread's critical path, with no vault containment</h3>
+    <span class="badges"><span class="b high">High</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> The inline renderer resolves image URLs against the note's directory and
+    opens them directly during layout construction. There is no containment check against the vault root, and
+    the decoded bitmap is never disposed.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>InlineRenderer.cs:176-183</code> — <code>ResolveImagePath</code> combines
+          <code>ctx.BaseDirectory</code> with the URL and calls <code>Path.GetFullPath</code>. It rejects
+          non-file absolute URIs, but nothing rejects a relative path that climbs out of the vault:
+          <code>../../../../etc/…</code> normalises cleanly and passes the <code>File.Exists</code> test.</li>
+      <li><code>Services/PathScope.cs</code> exists for exactly this check and is used by the vault, the
+          editor and the tree — but is not used here.</li>
+      <li><code>InlineRenderer.cs:162</code> — <code>Source = new Bitmap(path)</code>: a synchronous file open
+          and image decode inside <code>InlineUIContainer</code> construction, i.e. during the UI-thread
+          render pass. <code>MaxWidth = 800</code> bounds the displayed size, not the decode.</li>
+      <li>The <code>Bitmap</code> has no owner and is never disposed; unlike diagram bitmaps, it is not held
+          by <code>DiagramCache</code>.</li>
+      <li>Grep confirms this is the <em>only</em> filesystem access in the entire view layer, which is
+          otherwise clean.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Two distinct consequences. Structurally, it is the single hole in an otherwise strictly-observed rule
+    that views do not touch the disk — and being the only one, it is the one most likely to be overlooked when
+    the rule is next reasoned about. Behaviourally, a note containing a large image blocks the render pass
+    while it decodes, and a note containing many of them repeats that on every rebuild; since the preview
+    rebuilds on a 250 ms timer while typing (<code>EditorViewModel.cs:15</code>), images are re-decoded
+    repeatedly during editing.</p>
+    <p>The containment gap is worth stating plainly and without inflation: notes are local files the user
+    already owns, so this is not a privilege boundary being crossed. It matters because a vault may be
+    synced or shared, and because every other path-handling site in this codebase is careful about exactly
+    this — <code>NoteTemplateService.cs:39-46</code> normalises before comparing specifically to stop
+    <code>root/../../x</code> passing a prefix test.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Route image resolution through the same containment test the rest of the app uses, and give
+    decoded images the same ownership story diagrams already have — a bounded cache that owns the lifetime —
+    rather than an unowned object created during layout.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>9bf07e5</code> (review phase 2), on both counts.
+    Containment: <code>Services/NoteImagePath.cs</code> normalises with <code>GetFullPath</code> before
+    testing with <code>PathScope.IsSameOrUnder</code> &mdash; and defaults to the note's own folder when no
+    root is given &mdash; with <code>InlineRenderer.AddImage</code> (<code>:149</code>) resolving through it.
+    Ownership: <code>Views/Markdown/ImageCache.cs</code> is a bounded LRU that owns and disposes its
+    bitmaps, keyed by path plus the file's write stamp, so a preview rebuild no longer re-decodes.</p>
+    <p>The ownership split this shared with <a href="#f11">F11</a> was closed separately in
+    <code>todos.md</code> task 49. Borrow-per-draw was not available &mdash; an
+    <code>Image</code> holds its Source for as long as it is on screen &mdash; so the bound changed in
+    kind: <code>ImageCache</code> is bounded by build rather than by count, and disposes a bitmap only
+    once two builds in a row have gone without it, by which time no tree that could hold it is on
+    screen. Nothing the current build asked for is ever disposed, which is what a count bound could not
+    promise: 30 images in one note used to throw <code>ObjectDisposedException</code> out of
+    <code>Image.MeasureOverride</code> against the bound of 24.</p>
+    <p><strong>Remaining:</strong> a cache miss still decodes on the render pass, which is the part of
+    this finding that overlaps <a href="#f2">F2</a> and is not addressed.</p>
+    </div>
+  </div>
+</div>
+
+<h2 id="s5"><span class="num">5</span>Medium &amp; Low Findings</h2><div class="rule"></div>
+
+<div class="finding med" id="f4">
+  <div class="head">
+    <span class="fid">F5</span>
+    <h3>Four interfaces have one implementation, no test double, and no substitution point</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span><span class="b st done">Resolved</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> <code>IVaultService</code>, <code>ISearchService</code>,
+    <code>IReplaceService</code> and <code>IMarkdownRenderer</code> each have exactly one implementation and
+    are never substituted — not in production, not in tests.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Implementation count by grep: <code>IVaultService</code> → <code>VaultService</code> only;
+          <code>ISearchService</code> → <code>SearchService</code> only; <code>IReplaceService</code> →
+          <code>ReplaceService</code> only; <code>IMarkdownRenderer</code> → <code>MarkdownRenderer</code> only.</li>
+      <li>Tests pass the concrete classes: <code>MainWindowTests.cs:30</code> constructs
+          <code>new SearchService(vault.Service)</code>, <code>new ReplaceService(vault.Service)</code>,
+          <code>new MarkdownRenderer()</code>, and <code>TempVault.cs:13</code> exposes a real
+          <code>VaultService</code> over a temp directory.</li>
+      <li><code>Fakes.cs</code> contains doubles for <em>five</em> interfaces —
+          <code>FakeSettings</code>, <code>FakeTemplates</code>, <code>FakeExclusions</code>,
+          <code>FakeDialogs</code>, <code>FakeFileAssociation</code> — and for none of these four.</li>
+      <li><code>IVaultService</code> is a 56-line interface whose XML documentation carries the real design
+          reasoning, duplicated in comments on the implementation.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Each is an extra file to keep in step and an extra indirection when reading a call chain, in exchange
+    for a seam nothing uses. The contrast inside the same folder is the strongest argument: the six
+    <em>other</em> service interfaces all have genuine second implementations —
+    <code>IFileAssociationService</code> has a Windows and a non-Windows one,
+    <code>IDialogService</code> has a real and a recording one, <code>IDiagramRenderer</code> has a counting
+    test double, and <code>ISettingsService</code>, <code>INoteTemplateService</code> and
+    <code>IVaultIgnoreService</code> all have fakes that let view-model tests run without a disk. Those earn
+    their keep; these four currently do not.</p>
+    <p>One nuance worth recording rather than glossing: <code>IVaultService</code> is the dependency every
+    other service takes, so it is the interface most likely to be <em>wanted</em> as a seam. That it has no
+    fake despite 31 test files is evidence that the real one over a temp directory is genuinely good enough —
+    which is a finding about the tests' quality, not a gap in them.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">These are candidates for removal in favour of the concrete class, not for adding
+    implementations to justify. The decision is per-interface and depends on whether a second implementation
+    is actually foreseen; on the evidence in this repository, none is. Removing them is a mechanical change
+    with no behavioural risk, and it shortens every call chain the reader has to follow.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Resolved</strong> in <code>0e253e3</code>, by removal as suggested.
+    <code>IVaultService</code>, <code>IReplaceService</code> and <code>IMarkdownRenderer</code> were
+    deleted in favour of the concrete classes; <code>AppServices</code> names those three directly.
+    <code>ISearchService</code> was kept deliberately, and now meets this finding's own criterion:
+    <code>CountingSearch</code> (<code>SidebarSearchTests.cs:180</code>) is a genuine second
+    implementation, used to assert that sidebar search is debounced.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding med" id="f5">
+  <div class="head">
+    <span class="fid">F6</span>
+    <h3>Tree selection and expansion exist in two places and are reconciled by hand on every refresh</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Because the tree is discarded and rebuilt from disk on every change, all
+    per-node UI state has to be captured before the rebuild and replayed after it — and selection is
+    simultaneously held on the parent view model and on each node.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>MainViewModel.SelectedNode</code> (<code>:39</code>) and
+          <code>TreeNodeViewModel.IsSelected</code> (<code>TreeNodeViewModel.cs:15</code>) both exist;
+          <code>OnSelectedNodeChanged</code> (<code>MainViewModel.cs:457-468</code>) clears the flag on the
+          old node and sets it on the new one.</li>
+      <li><code>RefreshTree</code> (<code>:512-527</code>) collects expanded paths into a
+          <code>HashSet&lt;string&gt;</code>, clears <code>Tree</code>, rebuilds every
+          <code>TreeNodeViewModel</code> from <code>VaultEntry</code> records, then replays expansion and
+          re-resolves the selection by path — falling back to the open note when the selection has vanished.</li>
+      <li><code>TreeNodeViewModel.IsDropTarget</code> (<code>:16</code>) is a third piece of view state on the
+          node, set and cleared from the view (<code>Sidebar.axaml.cs:144,161</code>), with the sidebar
+          keeping its own <code>_highlighted</code> back-pointer (<code>:20</code>) purely to undo the
+          mutation it made.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Every piece of per-node state must be individually remembered across a rebuild or it is silently lost,
+    and the rebuild happens on a 300 ms timer after any filesystem event. Expansion and selection are handled;
+    scroll position and <code>IsDropTarget</code> are not. Adding a fourth piece of node state (a checkbox, a
+    dirty marker, an inline rename box) means remembering to extend <code>RefreshTree</code>, and forgetting
+    produces a bug that only appears when an unrelated file changes on disk.</p>
+    <p>The rebuild-everything approach is a defensible choice for a tree of this size and it makes
+    external-change handling trivially correct — the cost is precisely this manual state preservation, which
+    is the kind of thing that decays.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Either reconcile the existing tree against the new one by path instead of replacing it, so
+    node state survives by construction; or keep the rebuild and make the preserved state explicit and
+    singular — one object describing "what the sidebar remembers", captured and restored in one place, rather
+    than per-property code inside <code>RefreshTree</code>. Selection itself should have one owner: the node
+    flag can be derived from the view model's <code>SelectedNode</code> rather than mirrored.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>c970b91</code> (review phase 3), by the first of
+    the two directions offered &mdash; reconcile rather than replace.
+    <code>TreeNodeViewModel.Reconcile</code> (<code>:28</code>) matches the entries read off disk onto the
+    rows already there by path, and <em>moves</em> rather than remove-and-inserts, so the TreeView keeps the
+    container and every piece of node state survives by construction. Nothing is replayed.
+    Selection now has one owner: <code>IsSelected</code> is gone from the node, and so is
+    <code>IsDropTarget</code> &mdash; the drop highlight is view-local
+    (<code>Sidebar.axaml.cs:148</code>), with no back-pointer on the view model.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding med" id="f7">
+  <div class="head">
+    <span class="fid">F7</span>
+    <h3>Four matching implementations, and the same name-resolution rule written three times</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Four separate code paths answer "which notes match this text", each with its
+    own traversal and its own rules. The specific rule "an exact match wins, an accent-folded match is the
+    fallback" is implemented three times.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>SearchService.Search</code> (<code>SearchService.cs:9-31</code>) — folded substring over
+          content, first match only, plus a filename fallback; produces a snippet.</li>
+      <li><code>MatchFinder</code> (<code>MatchFinder.cs:43-96</code>) — literal-folded or regex, whole-word,
+          all matches with offsets and line context. Used by search-and-replace only.</li>
+      <li><code>QuickSwitcherViewModel.RefreshResults</code> (<code>:78-133</code>) — its own folded ranking,
+          exact → prefix → contains, capped at 50.</li>
+      <li><code>VaultService.FindNoteByName</code> (<code>:71-85</code>) and
+          <code>FindFolderByName</code> (<code>:87-101</code>) — exact-then-folded, for wikilink resolution.
+          The two methods are near-identical in shape, and the comment "An exact name always wins … folding
+          accents away is only a fallback" appears in both.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>The four are not gratuitous — they genuinely produce different outputs, and <code>PLAN.md</code> records
+    that <code>MatchFinder</code> was introduced deliberately because <code>SearchService</code> reported only
+    the first match per note and was therefore unusable as the basis of a replace. But the consequence is that
+    a user-visible rule now lives in three places: if accent-folding, case sensitivity or tie-breaking changes,
+    it has to be changed in all three or sidebar search, the quick switcher and wikilinks will quietly disagree
+    about which note a word names.</p>
+    <p>The strongest counter-evidence, and it should be respected: <code>MatchFinder</code> is explicitly
+    designed as the single matcher behind both the replace preview and the write
+    (<code>MatchFinder.cs:7-10</code>), which is a real correctness invariant. The problem is not that matchers
+    exist; it is that <em>name resolution</em> was never extracted the way <em>span finding</em> was.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Extract the name-matching rule — exact beats folded, case-insensitive — into one place the
+    way <code>DiacriticFolder</code> and <code>PathScope</code> already are, and let the vault lookups and the
+    quick switcher share it. The three content-matching paths are better left distinct until they share a
+    traversal (see <a href="#f2">F2</a>); collapsing them before that would couple them without removing the
+    real cost.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> &mdash; <code>todos.md</code> task 44.
+    <code>Services/NameMatch.cs</code> holds the rank ladder (Exact / ExactFolded / Prefix / PrefixFolded /
+    Contains / ContainsFolded), next to <code>PathScope</code> and <code>DiacriticFolder</code> as this
+    finding suggested. <code>VaultService</code> and <code>QuickSwitcherViewModel</code> both call it; the
+    three restatements are gone.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding med" id="f8">
+  <div class="head">
+    <span class="fid">F8</span>
+    <h3>Process-global render state lives on a control, outside the composition root</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> The diagram renderer and its cache are static mutable members of the
+    <code>MarkdownView</code> control, set from <code>App</code> rather than injected, and the cache is
+    replaced without disposing what it held.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>MarkdownView.cs:31</code> — <code>public static IDiagramRenderer? DiagramRenderer { get; set; }</code>,
+          written at <code>App.axaml.cs:39</code> and re-written by tests
+          (<code>MainWindowTests.cs:31</code>, <code>MarkdownViewLeakTests.cs:22</code>,
+          <code>NavigationLeakTests.cs:30</code>).</li>
+      <li><code>MarkdownView.cs:27</code> — <code>private static DiagramCache? _diagrams</code>; the real
+          picture and bitmap cache for the whole process.</li>
+      <li><code>MarkdownView.cs:84-90</code> — <code>Diagrams()</code> recreates the cache only when the
+          <em>renderer identity</em> differs: <code>if (_diagrams?.Renderer != renderer) _diagrams = new DiagramCache(renderer);</code>.
+          The previous cache — up to 64 <code>SvgSource</code>s and 32 <code>Bitmap</code>s, all
+          <code>IDisposable</code> — is dropped without disposal. It is also never cleared when a window or
+          vault closes.</li>
+      <li><code>MarkdownView.cs:87</code> throws if the static was never set, so the control has a hidden
+          initialisation order requirement on <code>App</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>This is the one place where the otherwise-exemplary composition root is bypassed: every other
+    dependency in the app arrives through a constructor from <code>AppSession</code>. The practical costs are
+    a test-ordering hazard (tests must set the static, and a test that swaps the renderer silently abandons
+    the previous cache's unmanaged Skia memory), and a cache whose lifetime is the process rather than the
+    session.</p>
+    <p>Context matters here: <code>PLAN.md</code> records that <code>DiagramCache</code> was introduced
+    specifically to fix a measured unmanaged leak in Svg.Skia, with regression tests. The cache is
+    well-built — bounded, keyed, disposing on eviction. The problem is only where it is anchored.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">The renderer is a service and belongs in <code>AppSession</code> alongside the other eight,
+    reaching the control the way every other dependency reaches a view — through the object graph rather than
+    a static. If the cache must stay process-wide for the memory reasons that motivated it, it should at
+    least have an owner that can dispose it.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> &mdash; <code>todos.md</code> task 45.
+    <code>IDiagramRenderer</code> is a member of <code>AppServices</code>, built in
+    <code>AppSession</code> like every other service. <code>MarkdownView.DiagramRenderer</code> is a
+    <code>StyledProperty</code> bound from <code>MainWindow.axaml</code>, and the caches are instance
+    fields; no static survives.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding med" id="f9">
+  <div class="head">
+    <span class="fid">F9</span>
+    <h3><code>Sidebar.axaml.cs</code> holds drop policy, filesystem paths and template-private names</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> The sidebar code-behind (169 lines, the heaviest in the app) carries
+    behaviour beyond wiring: drop-position rules, path handling, direct view-model mutation, and a dependency
+    on a private part name in the Fluent theme's control template.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Sidebar.axaml.cs:125-128</code> — the drop rule is a set of thresholds in the view:
+          a folder row accepts a drop <em>into</em> it between 25% and 75% of its height, otherwise the drop
+          is before or after at the 50% line.</li>
+      <li><code>:77</code> and <code>:117</code> — the drag payload is a filesystem path string, re-resolved
+          through <code>Vm.FindNode(path)</code> on the drop side.</li>
+      <li><code>:134-138</code> — <code>RowUnder</code> locates the row by
+          <code>b.Name == "PART_LayoutRoot"</code>, an internal name from the <code>TreeViewItem</code>
+          template.</li>
+      <li>Direct view-model mutation at <code>:51</code> (<code>Vm.SelectedNode</code>),
+          <code>:144</code>/<code>:161</code> (<code>node.IsDropTarget</code>), <code>:167</code>
+          (<code>Vm.SearchQuery</code>).</li>
+      <li><code>:35-36</code> — <code>PendingDragNode</code>, commented "Test seam", exists for
+          <code>SidebarDragTests</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>The genuinely important half of drag-and-drop — <em>where does this land, and is the move legal</em> —
+    is correctly in the view model (<code>MainViewModel.ResolveDrop</code> <code>:414-435</code>,
+    <code>MoveNode</code> <code>:407-408</code>) and is well tested by <code>TreeOrderTests</code>. What
+    remains in the view is the part that decides <em>what the user meant</em> by a pointer position, which is
+    a product rule sitting in an untestable place: the 25/75 threshold cannot be exercised without a
+    pointer-driven UI test, and the app's headless test suite drives it through the test seam instead.</p>
+    <p>The <code>PART_LayoutRoot</code> dependency is the more fragile item: it is an unversioned internal of
+    the Fluent theme, and a theme update that renames it breaks drag targeting with no compile error.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Move the "which drop position does this fraction mean" decision to where
+    <code>ResolveDrop</code> already lives, so the view reports a position and the view model interprets it —
+    the seam is already almost there. The template-name lookup is a known Avalonia constraint rather than a
+    design error; it deserves a comment saying so and a test that fails loudly if the name stops resolving,
+    not a redesign.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> &mdash; <code>todos.md</code> task 43. The drop-threshold
+    rule moved next to <code>ResolveDrop</code> as
+    <code>VaultWorkspaceViewModel.PositionIn(node, fraction)</code> (<code>:332</code>), with
+    <code>IntoBandEdge</code> named rather than written as literals. The sidebar measures the pointer
+    fraction and the view model decides Before / After / Into, so the product rule is unit-testable.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding low" id="f12">
+  <div class="head">
+    <span class="fid">F10</span>
+    <h3>Two error-to-dialog funnels, one of which is documented as the only one</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> <code>MainViewModel.Guard</code> is documented as "the single place where
+    service exceptions are caught and shown to the user", but a second process-wide handler does the same
+    thing for everything that escapes it.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>MainViewModel.cs:571</code> — the doc comment: "The single place where service exceptions are
+          caught and shown to the user." Implementation at <code>:572-594</code>.</li>
+      <li><code>App.axaml.cs:33-37</code> — <code>Dispatcher.UIThread.UnhandledException</code> sets
+          <code>args.Handled = true</code> and shows the message through the same
+          <code>DialogService</code>.</li>
+      <li>Two further local catch sites deliberately do <em>not</em> use <code>Guard</code>:
+          <code>SearchReplaceViewModel.Rescan</code> (<code>:120-125</code>) routes a bad regex to an inline
+          <code>Error</code> string rather than a dialog — with a comment explaining why — and
+          <code>ReplaceAll</code>/<code>UndoReplace</code> catch and report directly.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>The practical risk is small — both funnels show the same dialog — but the claim in the comment is not
+    true, and the second handler swallows <em>everything</em>, including exceptions that indicate a corrupt
+    state in which continuing is worse than crashing. Because it is global and marks every exception handled,
+    it also means a missing <code>Guard</code> on a new code path produces no visible difference during
+    development, which removes the feedback that would otherwise enforce the discipline.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Keep both — a last-resort handler is correct for a desktop app — but make the roles
+    distinct: the view-model guard handles expected, user-caused failures; the global handler is a crash
+    barrier and should present itself as one. At minimum the comment should stop claiming exclusivity.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> &mdash; <code>todos.md</code> task 48, keeping both funnels as this finding
+    asked and giving them different jobs and different words. <code>DialogGuard</code> no longer claims to
+    be the only one: its comment now says what a guard is for (a failure a command could see coming, shown
+    in the words it was thrown with) and names the crash barrier as the other path.
+    <code>App.StartDesktop</code> keeps <code>args.Handled = true</code> &mdash; a notes app that exits
+    takes the buffer someone was typing into with it &mdash; but shows <code>App.CrashMessage</code>
+    instead of the raw <code>ex.Message</code>: it says the failure was not expected, that the app may no
+    longer be sound, and names the exception type. That restores the development feedback the finding said
+    was lost, and <code>ErrorFunnelTests</code> pins it &mdash; a guarded failure must not arrive wearing
+    the barrier's words.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding low" id="f11">
+  <div class="head">
+    <span class="fid">F11</span>
+    <h3>A cache-owned bitmap can be disposed while a live view is still drawing it</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: Medium</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> <code>DiagramView</code> holds a bitmap reference the LRU owns, and the LRU
+    disposes values on eviction without knowing whether they are in use.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Lru.cs:20-25</code> — on overflow, <code>oldest.Value.Value.Dispose()</code> then remove. No
+          in-use tracking.</li>
+      <li><code>DiagramView.cs:74-81</code> — <code>Rasterize</code> assigns
+          <code>Bitmap = _cache.GetBitmap(_source, _dark, pixelWidth)</code>, storing a cache-owned reference
+          on the view.</li>
+      <li><code>DiagramView.cs:67-71</code> — <code>Render</code> draws that stored bitmap on every frame.</li>
+      <li><code>DiagramCache.cs:19</code> — the bitmap LRU capacity is 32, keyed by
+          <code>(source, dark, pixelWidth)</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>If more than 32 distinct <code>(source, dark, pixelWidth)</code> combinations are live at once, one
+    diagram's rasterisation can evict and dispose the bitmap another visible diagram is still drawing.
+    Reaching 32 requires an unusual document — many diagrams, or a window resized through many widths with
+    several diagrams present, since each width is a distinct key. I found no guard, and no test either way.</p>
+    <p>This is reported at Medium confidence deliberately: the code path is clear, but whether it is reachable
+    in practice depends on realistic document shapes, and the bound was chosen for a measured memory problem
+    rather than arbitrarily.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Ownership needs to be single-valued: either the cache owns bitmaps and views borrow them
+    for the duration of a single draw, or views own what they draw and the cache is a factory. The current
+    arrangement — cache owns the lifetime, view holds the reference across frames — is the combination that
+    cannot be made safe by tuning the capacity.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> &mdash; <code>todos.md</code> task 46, after reproducing it
+    with <code>bitmapCapacity: 1</code>. <code>DiagramView</code> keeps only <code>_pixelWidth</code>, the
+    cache key, and borrows the bitmap from the cache for the length of a single <code>Render</code>, which
+    is safe because Avalonia takes its own reference on the draw it records. A key cannot go stale the way
+    a reference can. The same split in <code>ImageCache</code> was found while fixing this one and left;
+    see <a href="#f10">F4</a>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding low" id="f13">
+  <div class="head">
+    <span class="fid">F12</span>
+    <h3>The three modal overlays are copy-pasted rather than shared</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Quick switcher, search-and-replace and settings each reimplement the same
+    overlay: scrim, card, Escape-to-close, click-outside-to-close, focus-on-show, and the cast to the view
+    model.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Scrim + card markup: <code>QuickSwitcher.axaml:9-22</code>,
+          <code>SearchReplace.axaml:9-22</code>, <code>SettingsPanel.axaml:10-22</code> — three near-identical
+          blocks (<code>#80000000</code> scrim, <code>MdSurface</code> border, radius 8, the same box shadow).</li>
+      <li>Focus-on-show: <code>QuickSwitcher.axaml.cs:20-32</code> and
+          <code>SearchReplace.axaml.cs:20-32</code> are identical apart from the control name; a third
+          variant exists at <code>InputDialog.axaml.cs:16-20</code>.</li>
+      <li>Tunnelled Escape handling registered identically at <code>QuickSwitcher.axaml.cs:15</code>,
+          <code>SearchReplace.axaml.cs:15</code>, <code>SettingsPanel.axaml.cs:13</code>.</li>
+      <li>Scrim-close handlers: <code>QuickSwitcher.axaml.cs:60-63</code>,
+          <code>SearchReplace.axaml.cs:42</code>, <code>SettingsPanel.axaml.cs:25</code>.</li>
+      <li><code>private XViewModel Vm =&gt; (XViewModel)DataContext!;</code> appears in five code-behinds:
+          <code>MainWindow.axaml.cs:26</code>, <code>Sidebar.axaml.cs:33</code>,
+          <code>QuickSwitcher.axaml.cs:18</code>, <code>SearchReplace.axaml.cs:18</code>,
+          <code>SettingsPanel.axaml.cs:16</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Three copies is where behaviour starts to diverge, and it already has: <code>SettingsPanel</code>
+    additionally moves focus to its Done button before closing (<code>:32-36</code>) so that a
+    <code>LostFocus</code>-bound text box commits — a real bug fix that the other two overlays do not have and
+    do not need <em>today</em>. Any future overlay will be a fourth copy, and any fix to overlay behaviour
+    must be applied three times.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">This is the clearest candidate in the report for a shared abstraction, because the
+    duplication is demonstrated rather than anticipated: one templated overlay control taking content and an
+    <code>IsOpen</code> binding would absorb the scrim, the card, Escape, click-outside and focus-on-show. The
+    per-overlay differences that remain (the settings focus-commit) are the content's business.</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>f455fa9</code> (review phase 1).
+    <code>Views/Shell/ModalOverlay.cs</code> is the templated control this finding called for &mdash; scrim,
+    card, Escape, click-outside and focus-on-show, plus an <code>InitialFocus</code> attached property that
+    generalises the settings panel's focus-commit fix instead of leaving it to one overlay. All three
+    overlays use it (<code>MainWindow.axaml:95,101,107</code>) and own their content only.</p>
+    </div>
+  </div>
+</div>
+
+<div class="finding low" id="f14">
+  <div class="head">
+    <span class="fid">F13</span>
+    <h3>Three theming mechanisms, and diagram colours are a second palette</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span><span class="b st done">Fixed</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Theme is expressed declaratively through resources, imperatively through a
+    global application property driven per-window, and as a captured boolean baked into diagram rendering —
+    and the third path defines its own colours.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Declarative: <code>Themes/Palette.axaml:5-15</code> (light) and <code>:33-43</code> (dark) define
+          <code>MdSurface</code>, <code>MdText</code>, <code>MdAccent</code> …, consumed by
+          <code>DynamicResource</code> throughout the XAML and imperatively in
+          <code>BlockRenderer</code>/<code>InlineRenderer</code>.</li>
+      <li>Imperative-global: <code>App.ApplyTheme</code> (<code>App.axaml.cs:53-60</code>) writes
+          <code>Application.Current!.RequestedThemeVariant</code>, invoked from <code>AppSession.cs:49</code>
+          and again from a per-view-model <code>PropertyChanged</code> subscription at <code>:50-54</code>.
+          The target is application-global; the trigger is per-window, so with N windows the last writer wins.</li>
+      <li>Captured snapshot: <code>MarkdownView.cs:80</code> takes
+          <code>var dark = ActualThemeVariant == ThemeVariant.Dark;</code> into <code>RenderContext</code>,
+          which becomes part of the diagram cache key and reaches
+          <code>MermaiderDiagramRenderer.cs:12-13</code> — which hard-codes
+          <code>#1E1E1E</code>, <code>#FFFFFF</code>, <code>#DDDDDD</code>, <code>#27272A</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>Diagram colours cannot follow the palette, because they are defined in the services layer and the
+    palette is a XAML resource dictionary. Editing <code>Palette.axaml</code> restyles the whole app except
+    diagrams. Separately, theme is per-window state in the view model
+    (<code>MainViewModel.ThemeMode</code>, persisted per user) but application-global in effect, so two
+    windows cannot disagree about it and the loser's persisted setting is silently overridden.</p>
+    <p>The snapshot-and-rebuild mechanism itself is sound — it is what lets diagrams re-render on a theme
+    change (<code>MarkdownView.cs:39</code>) — and the colour duplication has a real cause: Mermaider needs
+    literal colour strings, which is also why <code>SvgCssInliner</code> exists.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <p class="dir">Let the diagram colours come from the same source as everything else — read from the
+    resolved theme resources at render time rather than restated as literals — so there is one palette. The
+    per-window/global theme mismatch is worth a deliberate decision rather than a fix: either theme is an
+    application setting (and does not belong on <code>MainViewModel</code>), or it is per-window (and
+    <code>RequestedThemeVariant</code> is the wrong mechanism).</p>
+
+    <div class="status done">
+      <span class="lbl">Status &middot; 2026-09-21</span>
+    <p><strong>Fixed</strong> in <code>f455fa9</code> (review phase 1).
+    <code>Models/DiagramPalette.cs</code> carries the colours as the literal strings the renderer needs, and
+    they are resolved from <code>MdSurface</code> and <code>MdText</code> at render time
+    (<code>MarkdownView.cs:119-129</code>) &mdash; the hard-coded hexes are now fallbacks only, so editing
+    the palette restyles diagrams too. The per-window theme race went with it:
+    <code>AppSession.cs:41-47</code> holds one application-wide subscription, and
+    <code>MainViewModel.ThemeMode</code> reads the setting rather than keeping a copy that could
+    disagree.</p>
+    </div>
+  </div>
+</div>
+
+<h2 id="s6"><span class="num">6</span>Dependency &amp; Coupling Analysis</h2><div class="rule"></div>
+
+<h3>Direction: clean</h3>
+<p>Verified by grep rather than assumed:</p>
+<ul>
+  <li>No <code>using Avalonia*</code> anywhere in <code>Services/</code> or <code>Models/</code>. The domain
+      and service layers are framework-free and can be tested without a UI toolkit.</li>
+  <li>Only four files under <code>Views/</code> reference <code>MdNotes.Services</code>, and each has a
+      reason: <code>DialogService</code> (implements a service interface),
+      <code>MarkdownView</code>/<code>DiagramCache</code> (hold <code>IDiagramRenderer</code>),
+      <code>InlineRenderer</code> (see <a href="#f10">F4</a>).</li>
+  <li>No service references a view model. No view model references a view.</li>
+  <li>No circular references between layers. There are no partial-class tricks or <code>internal</code>
+      back-channels apart from <code>InternalsVisibleTo(MdNotes.Tests)</code>.</li>
+</ul>
+
+<h3>Coupling hot spots</h3>
+<div class="scroll"><table>
+<thead><tr><th>Edge</th><th>Nature</th><th>Assessment</th></tr></thead>
+<tbody>
+<tr><td><code>MainViewModel</code> → 9 services</td><td>constructor</td><td>The dominant coupling in the app; see <a href="#f3">F3</a>. Explicit and visible, which is the good version of this problem.</td></tr>
+<tr><td>Every service → <code>IVaultService</code></td><td>constructor</td><td><code>SearchService</code>, <code>ReplaceService</code>, <code>NoteTemplateService</code>, <code>VaultIgnoreService</code> all take it. Correct — it is the filesystem boundary — but it makes the vault the single point every feature passes through.</td></tr>
+<tr><td><code>VaultService</code> → <code>ISettingsService</code></td><td>constructor</td><td>Only for <code>UseGitIgnore</code> (<code>VaultService.cs:229</code>). A policy flag reaching into the storage primitive; <code>PLAN.md</code> explicitly reasons about not letting the vault read settings, and this is the one case where it does.</td></tr>
+<tr><td>Child VMs → parent, via <code>Action</code> callbacks</td><td>delegate</td><td><code>QuickSwitcherViewModel</code> and <code>SearchReplaceViewModel</code> take <code>Action&lt;string&gt;</code>/<code>Action&lt;ReplaceReport&gt;</code> rather than a back-reference (<code>MainViewModel.cs:85-99</code>). This is the good pattern — no cycle, and each child is constructible in a test with two lambdas.</td></tr>
+<tr><td><code>SettingsViewModel</code> → <code>Action changed</code></td><td>delegate</td><td>Bound to <code>Editor.NotifySaveModeChanged</code> (<code>MainViewModel.cs:84</code>) so the status bar re-reads the mode. A manual invalidation edge: settings has no change notification of its own, so every consumer must be told by hand.</td></tr>
+<tr><td>Views → view-model internals</td><td>direct mutation</td><td><code>Sidebar.axaml.cs:51,144,161,167</code>, <code>MainWindow.axaml.cs:20,80,92,95</code>. Includes reaching <em>through</em> <code>MainViewModel</code> into the child editor (<code>vm.Editor.SaveImplicitly()</code>) — a persistence decision made by a window event.</td></tr>
+<tr><td><code>App</code> → <code>MarkdownView</code> static</td><td>hidden</td><td>The one dependency that does not go through the composition root; see <a href="#f8">F8</a>.</td></tr>
+<tr><td><code>DialogService</code> → <code>Application.Current</code></td><td>service locator</td><td><code>DialogService.cs:14-24</code> resolves the owning window by walking the global window list. The class has no instance state at all, so its identity conveys nothing. Defensible — dialog ownership genuinely is a global question with several windows — but it is a locator.</td></tr>
+</tbody></table></div>
+
+<h3>Test coupling</h3>
+<p>The test suite reflects the production coupling faithfully, which is how the god-object cost becomes
+visible: ten sites construct <code>MainViewModel</code> with all nine arguments spelled out. Test doubles
+exist for exactly the five interfaces that need them, and the vault is tested against a real temp directory
+(<code>TempVault.cs</code>) rather than a mock — a good decision that keeps the filesystem semantics honest.
+UI tests run headless with real Skia rendering (<code>TestAppBuilder.cs</code>), including
+<code>CaptureRenderedFrame</code> assertions, which is unusually thorough for an app this size.</p>
+
+<h2 id="s7"><span class="num">7</span>State &amp; Data Flow Analysis</h2><div class="rule"></div>
+
+<h3>Where authoritative state lives</h3>
+<div class="scroll"><table>
+<thead><tr><th>State</th><th>Authority</th><th>Copies</th><th>Ownership clear?</th></tr></thead>
+<tbody>
+<tr><td>Notes and folders</td><td>the filesystem</td><td><code>Tree</code> is rebuilt from disk, never authoritative</td><td class="sev-low">Yes — exemplary</td></tr>
+<tr><td>Manual ordering</td><td><code>.order</code> files, via <code>FolderOrderFile</code></td><td>none</td><td class="sev-low">Yes</td></tr>
+<tr><td>Exclusions</td><td><code>.mdnotesignore</code> (+ optional <code>.gitignore</code>)</td><td>compiled <code>VaultIgnore</code>, invalidated by a size+mtime stamp</td><td class="sev-low">Yes — cache is explicit</td></tr>
+<tr><td>Preferences</td><td><code>settings.json</code>, write-through</td><td>in-memory <code>Data</code> object</td><td class="sev-low">Yes</td></tr>
+<tr><td><strong>Vault identity</strong></td><td><code>VaultService.RootPath</code> — process-global</td><td><code>VaultPath</code>, <code>VaultName</code> per window</td><td class="sev-crit">No — see <a href="#f1">F1</a></td></tr>
+<tr><td>Open note</td><td><code>EditorViewModel.CurrentPath</code></td><td><code>MainViewModel.SelectedNode</code> tracks it loosely; they can legitimately diverge</td><td class="sev-med">Partly — divergence is intentional but undocumented</td></tr>
+<tr><td>Editor buffer</td><td><code>EditorViewModel.Text</code> + <code>IsDirty</code></td><td>the TextBox is two-way bound</td><td class="sev-low">Yes</td></tr>
+<tr><td>Tree selection</td><td><code>MainViewModel.SelectedNode</code></td><td><code>TreeNodeViewModel.IsSelected</code> mirrors it</td><td class="sev-med">Mirrored; see <a href="#f5">F6</a></td></tr>
+<tr><td>Sidebar width</td><td><code>MainWindow._sidebarWidth</code> (view only)</td><td>also the grid column, also <code>Sidebar.IsVisible</code>, also a splitter binding</td><td class="sev-med">Four representations, one truth</td></tr>
+<tr><td>Theme</td><td><code>MainViewModel.ThemeMode</code> per window</td><td><code>Application.RequestedThemeVariant</code> global; a captured bool per render</td><td class="sev-med">Per-window value, global effect; see <a href="#f14">F13</a></td></tr>
+<tr><td>Replace undo</td><td><code>SearchReplaceViewModel._undo</code>, in memory</td><td>none</td><td class="sev-low">Yes — and explicitly one step, documented in the UI</td></tr>
+</tbody></table></div>
+
+<h3>Traced flow: a keystroke in the sidebar search box</h3>
+<pre><code>TextBox (two-way) → MainViewModel.SearchQuery
+  → OnSearchQueryChanged                            MainViewModel.cs:475
+    → SearchResults.Clear()
+    → ISearchService.Search(value)                  synchronous, UI thread
+      → IVaultService.EnumerateNotes()              recursive directory walk
+        → CurrentIgnore()                           one stat of .mdnotesignore, cached by stamp
+      → for every note: vault.Read(path)            File.ReadAllText — the whole file
+        → DiacriticFolder.Fold(content)             allocates a copy of every file's text
+        → IndexOf(needle)
+    → SearchResults.Add(hit) per match
+</code></pre>
+<p>Every keystroke re-walks the tree, re-reads every note and allocates a folded copy of each. Selecting a
+result then sets <code>SelectedHit</code>, which calls <code>SelectPath</code>, which walks the whole tree
+again to expand ancestors (<code>MainViewModel.cs:538-545</code>).</p>
+
+<h3>Traced flow: a file changes on disk</h3>
+<pre><code>FileSystemWatcher (background thread)
+  → VaultService.OnFsChanged                        VaultService.cs:384
+    → IsQuiet(e)?                                   uses the CACHED ignore list — no disk access
+       (deliberate: a build inside an excluded folder is thousands of events)
+    → VaultChanged                                  raised on the watcher thread
+  → MainViewModel._vaultChanged                     MainViewModel.cs:113 — EVERY window
+    → Dispatcher.UIThread.Post → restart 300 ms timer
+      → RefreshTree()                               MainViewModel.cs:512
+        → capture expanded paths + selection
+        → Tree.Clear(); rebuild from vault.GetTree()
+        → replay expansion; re-resolve selection by path
+</code></pre>
+<p>This path is well-built: the thread hand-off is explicit, the debounce coalesces bursts, and
+<code>IsQuiet</code> avoids disk access on the watcher thread by design, with a comment explaining the
+trade-off. It is also the path that makes <a href="#f1">F1</a> visible — every window refreshes from whatever
+<code>RootPath</code> currently is.</p>
+
+<h3>Traced flow: writing a note</h3>
+<p>Every implicit write funnels through one method. <code>EditorViewModel.SaveImplicitly</code>
+(<code>:102-105</code>) is called on note switch, vault switch, rename, move, window close and app deactivate,
+and is a no-op in <code>Manual</code> mode; the explicit prompt for that case lives in
+<code>MainViewModel.FlushUnsavedAsync</code> (<code>:194-198</code>). This is a genuinely well-designed
+invariant — one gate, one documented exception — and it survives eight call sites without leaking.</p>
+
+<h2 id="s8"><span class="num">8</span>Unnecessary Complexity</h2><div class="rule"></div>
+
+<p>The honest summary is that <strong>this codebase is not over-abstracted</strong>. There is no DI container,
+no repository pattern over the filesystem, no mediator, no event bus, no generic <code>Result&lt;T&gt;</code>
+wrapper, no plugin system. Services are concrete classes doing concrete work, and the composition root is 85
+lines that can be read top to bottom. That restraint is the right call for a 5 000-line app and should be
+defended.</p>
+
+<p>What genuine excess exists is narrow:</p>
+
+<ul>
+  <li><strong>Four interfaces buying nothing</strong> (<a href="#f4">F5</a>) — the only clear case of
+      abstraction without a substitution point.</li>
+  <li><strong><code>DialogService</code> is a forwarding wrapper.</strong> All four methods are one-line
+      passthroughs to static factories on the dialog windows (<code>DialogService.cs:26-31</code> →
+      <code>MessageDialog.ShowErrorAsync</code>, <code>ConfirmAsync</code>, <code>InputDialog.ShowAsync</code>).
+      The class holds no instance state; its only real logic is the static owner-window resolution. The
+      <em>interface</em> earns its keep — <code>FakeDialogs</code> is used by most view-model tests — but the
+      class is a seam with nothing in it.</li>
+  <li><strong>Premature extensibility, documented as such.</strong>
+      <code>NoteTemplateService.ContentFor(folderPath, name)</code> ignores <code>folderPath</code>;
+      the doc comment (<code>NoteTemplateService.cs:9-10</code>) says it is "what per-folder templates would
+      resolve against". This is the mildest possible form of the smell — one unused parameter, honestly
+      labelled — and is listed for completeness rather than concern.</li>
+  <li><strong><code>SettingsViewModel</code> is mostly pass-through.</strong> It is a property-by-property
+      re-export of <code>ISettingsService</code> with unit conversion (ms ↔ seconds) and status strings.
+      That is a legitimate job for a view model, but combined with the manual <code>_changed</code> callback
+      and the six explicit <code>OnPropertyChanged</code> calls in <code>Open()</code> (<code>:133-143</code>),
+      it is carrying work that a change-notifying settings service would do for free.</li>
+</ul>
+
+<p>Conversely, several things that <em>look</em> like excess are not, and should not be simplified:</p>
+<ul>
+  <li>The <code>ReadEntries</code> / <code>ReadChildren</code> split in <code>VaultService</code>
+      (<code>:300-333</code>) looks like duplication and is a deliberate correctness boundary — one orders
+      without filtering because that is what <code>.order</code> means, the other filters for the tree.
+      Merging them would silently delete excluded siblings' order lines.</li>
+  <li>The two <code>FileSystemWatcher</code>s (<code>:33-56</code>) look redundant and are not: the second is
+      narrowly filtered so that <code>LastWrite</code> notifications do not fire on every autosave.</li>
+  <li><code>SvgCssInliner</code> looks like something a library should do; <code>PLAN.md</code> records that
+      Svg.Skia has no CSS-variable support and renders Mermaider's output black without it.</li>
+</ul>
+
+<h2 id="s9"><span class="num">9</span>AI-Assisted Development Smells</h2><div class="rule"></div>
+
+<p>This section reports observable architectural consequences of rapid iterative development. It makes no
+claim about how any code was produced.</p>
+
+<h3>What the shape of the history shows</h3>
+<p><code>PLAN.md</code>'s progress log records <strong>nine substantial features landing between 2026-09-15
+and 2026-09-18</strong>: a WPF→Avalonia port, a UI overhaul, two performance fixes, manual ordering,
+vault-wide search and replace, loose-file handling, configurable autosave, note templates, and vault
+exclusions. Git history is not usable as corroboration — the repository has two commits, and the two most
+recent features are entirely uncommitted (13 untracked source files, 32 modified).</p>
+
+<p>The notable thing is what this did <em>not</em> produce. There are no compatibility wrappers, no parallel
+implementations of the same subsystem, no dead abstraction layers, and no versioned duplicates.
+<code>PLAN.md</code> even records duplication being found and removed —
+"<code>ReplaceService.IsHidden</code> … is gone, and its <code>IsUnder</code> was a byte-for-byte copy of
+<code>PathScope.IsSameOrUnder</code>". Each feature's entry reasons explicitly about where the seam should
+go, and in several cases argues against the more abstract option.</p>
+
+<h3>Where the accumulation is visible</h3>
+<ul>
+  <li><strong>Locally-reasonable changes with a collective cost.</strong> Each of the last four features
+      added exactly one dependency to <code>MainViewModel</code>, each justified in isolation, and the sum is
+      a nine-argument constructor repeated at ten call sites (<a href="#f3">F3</a>). No single step was wrong;
+      no step was the moment to split the class either.</li>
+  <li><strong>Each feature brought its own vault traversal.</strong> Search walks; replace walks; the quick
+      switcher walks; the exclusion probe walks. Four features, four independent answers to the same question,
+      none of them wrong on its own (<a href="#f2">F2</a>).</li>
+  <li><strong>Three overlays, three copies of the same chrome</strong> (<a href="#f13">F12</a>) — the quick
+      switcher came first, and search-and-replace and settings each started from it. The divergence has
+      already begun: only the settings panel has the focus-commit fix.</li>
+  <li><strong>Documentation mass exceeds source mass.</strong> <code>STRUCTURE.md</code> (162 KB, 3 483 lines),
+      <code>todos.md</code> (77 KB, including two full reviewer logs inline) and <code>PLAN.md</code> (39 KB)
+      total roughly 280 KB against ~180 KB of C#. <code>STRUCTURE.md</code> is a generated index that drifts
+      against the code between regenerations.</li>
+  <li><strong>Test organisation drifting from test content.</strong> <code>SettingsViewModelTests</code> lives
+      inside <code>AutoSaveTests.cs:222</code> — it was added when the autosave settings were, and stayed
+      there through two subsequent features that extended it. <code>PLAN.md</code> refers to it as though it
+      were its own file.</li>
+  <li><strong>Test seams in production API surface.</strong> <code>Sidebar.PendingDragNode</code> and
+      <code>DiagramView.Bitmap</code> are public members that exist for tests
+      (<a href="#f9">F9</a>) — a reasonable trade for testing pointer-driven code, worth naming because it is
+      the kind of thing that multiplies.</li>
+</ul>
+
+<div class="callout">
+<b>The distinguishing observation.</b> The usual signature of accumulated AI-assisted development is
+<em>layers</em> — new abstractions stacked on old ones, wrappers whose purpose has expired. That pattern is
+absent here. What this codebase shows instead is <em>breadth</em>: nine features that each reached correctly
+into the same two structural points — <code>MainViewModel</code>'s constructor and the vault's traversal —
+because neither was ever refactored to accommodate the fourth caller. The architecture did not decay; it
+simply stopped being resized.
+</div>
+
+<h2 id="s10"><span class="num">10</span>Positive Architectural Decisions</h2><div class="rule"></div>
+
+<div class="card good">
+<h3>Strict, verified layer direction</h3>
+<p>Not one Avalonia type in <code>Services/</code> or <code>Models/</code>. This is the single most valuable
+property of the codebase: the ignore-pattern language, the template substitution rules, the match finder, the
+diacritic folder and the whole vault API are testable without a UI toolkit, and 31 test files exploit that.
+Preserve it unconditionally — including in any fix to <a href="#f10">F4</a>.</p>
+</div>
+
+<div class="card good">
+<h3>One class per filesystem convention</h3>
+<p><code>IgnoreFile</code> owns the names <code>.mdnotesignore</code>/<code>.gitignore</code> and never throws;
+<code>FolderOrderFile</code> owns the <code>.order</code> format and the folder-suffix convention;
+<code>PathScope</code> owns containment; <code>DiacriticFolder</code> owns folding. Each carries an explicit
+"the only code that knows this" contract in its doc comment, and each is actually honoured. This is what makes
+the exclusion feature a three-call-site change rather than a rewrite.</p>
+</div>
+
+<div class="card good">
+<h3><code>MatchFinder</code> as a single matcher behind preview and write</h3>
+<p>The replace preview and the replace itself go through the same code, so the user cannot be shown one thing
+and have another written. <code>ReplaceService.StillMatches</code> (<code>:70-78</code>) then re-verifies every
+span against the file's current bytes before writing and reports skipped notes by name. This is a real
+correctness invariant, deliberately constructed, and the undo snapshot travels in the report so the service
+stays stateless.</p>
+</div>
+
+<div class="card good">
+<h3>The <code>SaveImplicitly</code> gate</h3>
+<p>Every write the user did not explicitly ask for passes through one method that is a no-op in manual mode
+(<code>EditorViewModel.cs:102-105</code>), with the prompting path separated into
+<code>FlushUnsavedAsync</code>. Eight call sites, one rule, no leakage. Autosave semantics are the kind of
+thing that usually ends up scattered; here it did not.</p>
+</div>
+
+<div class="card good">
+<h3>Ordering before filtering, with a test named after the trap</h3>
+<p><code>VaultService.ReadEntries</code> deliberately does not apply exclusions because <code>.order</code>
+must record every sibling; <code>ReadChildren</code> filters for the tree; and
+<code>VisibleToFull</code> (<code>:339-350</code>) translates a sidebar row index into a disk index. Without
+this, one drag in a folder with an excluded sibling would delete that sibling's order line permanently. The
+reasoning is recorded, the regression test exists, and the trap is named.</p>
+</div>
+
+<div class="card good">
+<h3>Explicit composition root, no container</h3>
+<p><code>AppSession.cs</code> is 85 lines in which every dependency is visible. For an app this size a DI
+container would obscure more than it automates. Do not add one.</p>
+</div>
+
+<div class="card good">
+<h3>Callback-based child view models</h3>
+<p><code>QuickSwitcherViewModel</code> and <code>SearchReplaceViewModel</code> receive
+<code>Action</code> delegates rather than a reference to their parent
+(<code>MainViewModel.cs:85-99</code>). No cycles, and each is constructible in a test with two lambdas —
+which is why <code>QuickSwitcherViewModelTests</code> and <code>SearchReplaceViewModelTests</code> exist as
+focused unit tests while the shell needs a headless window.</p>
+</div>
+
+<div class="card good">
+<h3>Decisions are recorded with their reasoning</h3>
+<p><code>PLAN.md</code> explains not only what was built but what was rejected and why — why <code>!</code>
+negations are unsupported, why the vault must not read settings, why substitution is one regex pass rather
+than chained <code>Replace</code>, why an unrecognised placeholder is returned verbatim. This is genuinely
+rare and it is what made this review possible at this level of confidence. It is also the thing most likely
+to be lost: it lives in one 39 KB file rather than beside the code it governs.</p>
+</div>
+
+<h2 id="s11"><span class="num">11</span>Simplification Opportunities</h2><div class="rule"></div>
+
+<p>Ordered by value-to-disruption, not by severity. Each is independent of the others.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Opportunity</th><th>Removes</th><th>Disruption</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Drop <code>IVaultService</code>, <code>ISearchService</code>, <code>IReplaceService</code>, <code>IMarkdownRenderer</code> in favour of the concrete classes</td><td>4 files, ~110 lines, and one indirection in every call chain a reader follows</td><td class="sev-low">Low — mechanical, no behaviour change; tests already use the concrete types</td></tr>
+<tr><td>2</td><td>One test helper that constructs a default <code>MainViewModel</code></td><td>10 copies of a nine-argument constructor call; makes dependency #10 a one-line change</td><td class="sev-low">Low — test-only</td></tr>
+<tr><td>3</td><td>One templated overlay control for scrim + card + Escape + click-outside + focus-on-show</td><td>3 copies of markup, 3 of Escape handling, 3 of scrim-close, 2 of focus-on-show</td><td class="sev-low">Low–Medium — contained within <code>Views/Shell</code></td></tr>
+<tr><td>4</td><td>Extract the exact-then-folded name rule into one place, as <code>PathScope</code> and <code>DiacriticFolder</code> already are</td><td>3 restatements of a user-visible rule</td><td class="sev-low">Low</td></tr>
+<tr><td>5</td><td>Debounce sidebar search, matching the three other debounced paths</td><td>N−1 full vault reads per word typed</td><td class="sev-low">Low — but treats the symptom, not <a href="#f2">F2</a></td></tr>
+<tr><td>6</td><td>Give vault identity one owner and one notification channel</td><td><a href="#f1">F1</a> entirely, plus the per-window cached copies</td><td class="sev-med">Medium — needs a decision about whether windows share a vault</td></tr>
+<tr><td>7</td><td>One place that answers "what is in this vault", cached and invalidated by the existing watcher</td><td>4 independent traversals; creates somewhere for an index to live later</td><td class="sev-med">Medium — touches four call sites, but each becomes simpler</td></tr>
+<tr><td>8</td><td>Split <code>MainViewModel</code> along the shell / vault-workspace seam</td><td>The god object and its blast radius</td><td class="sev-high">High — do only after #2 and #7, which reduce its cost</td></tr>
+</tbody></table></div>
+
+<p><strong>Explicitly not recommended:</strong> adding a DI container; introducing a repository or unit-of-work
+layer over the filesystem; making the remaining six service interfaces symmetrical by adding implementations;
+replacing the <code>Action</code> callbacks with an event aggregator; or generalising
+<code>FolderOrderFile</code>/<code>IgnoreFile</code> into a "sidecar file" abstraction. Each would add
+structure the evidence does not ask for.</p>
+
+<h2 id="s12"><span class="num">12</span>Areas Requiring Manual Verification</h2><div class="rule"></div>
+
+<ol>
+  <li><strong>Multi-window vault switching (<a href="#f1">F1</a>).</strong> The finding is a code-path
+      reading, not a runtime observation. Reproduce by opening two windows (launch, then double-click a
+      <code>.md</code> file so the pipe hands it to the running instance), switching the vault in one with
+      <kbd>Ctrl+Shift+O</kbd>, then touching a file in the new vault to trigger the watcher. Watch the second
+      window's title, sidebar, and the status bar of any note open in it.</li>
+  <li><strong>Search responsiveness at scale (<a href="#f2">F2</a>).</strong> The cost model is clear from the
+      code; the threshold at which it becomes perceptible is not. Measure with a realistic vault — several
+      hundred notes — while typing into the sidebar search box.</li>
+  <li><strong>Diagram bitmap eviction (<a href="#f11">F11</a>).</strong> Whether a live
+      <code>DiagramView</code> can draw a disposed bitmap depends on exceeding 32 live
+      <code>(source, dark, pixelWidth)</code> keys. Try a note with many diagrams, resized through several
+      widths.</li>
+  <li><strong>UI-thread-only access to <code>MarkdownView._diagrams</code></strong> appears to be an unwritten
+      invariant — there is no assertion, dispatcher check or lock. It is true by construction today; it should
+      be confirmed and then stated.</li>
+  <li><strong>Image path containment (<a href="#f10">F4</a>)</strong> — confirm whether a note referencing
+      <code>![](../../outside.png)</code> renders. The code path suggests it does.</li>
+  <li><strong>Dead XAML names.</strong> <code>MainWindow.axaml:44</code> (<code>x:Name="Panes"</code>) and
+      <code>SettingsPanel.axaml:8</code> (<code>x:Name="Root"</code>) have no readers that grep finds. They may
+      be intentional automation hooks.</li>
+  <li><strong>The test suite was not run.</strong> <code>dotnet test</code> writes to <code>bin/</code> and
+      <code>obj/</code>, and this review was required to leave the repository unchanged.
+      <code>PLAN.md</code> reports 313 passing + 1 skipped as of the exclusions feature, and notes that two
+      <code>VaultServiceTests</code> cases fail on Linux for environmental reasons (<code>:</code> is a legal
+      filename character; the filesystem is case-sensitive) — pre-existing and unrelated to any finding here.</li>
+  <li><strong>Scope caveat.</strong> This review covers the working tree. The two most recent features — note
+      templates and vault exclusions — are uncommitted, and <code>STRUCTURE.md</code> is a generated index
+      that had drifted against the source at the time of reading. All <code>file:line</code> citations in this
+      report were read directly from the working tree, not from the index.</li>
+</ol>
+
+<h2 id="s13"><span class="num">13</span>Overall Architecture Assessment</h2><div class="rule"></div>
+
+<h3>Is the architecture coherent?</h3>
+<p>Yes. The layering is real, not aspirational — it is enforced by what the files actually reference, and it
+holds at every boundary but one (<a href="#f10">F4</a>, a single method in the inline renderer). The
+filesystem-as-truth model is applied consistently; there is no shadow state to reconcile. Someone reading
+this codebase for the first time can follow any feature from keystroke to disk without encountering an
+indirection that does not pay for itself.</p>
+
+<h3>Where is complexity concentrated?</h3>
+<p>In two places, both of which are <em>convergence points</em> rather than tangles:</p>
+<ul>
+  <li><strong><code>MainViewModel</code></strong> — 595 lines, 12% of the source, every feature's entry
+      point. It is not badly written; it is simply where everything meets, and nothing has been moved out of
+      it since the Avalonia port.</li>
+  <li><strong>Vault traversal</strong> — <code>VaultService</code> is correct and carefully built, but four
+      features each added an independent walk over it rather than a shared question. There is no index and,
+      more to the point, nowhere an index could currently live.</li>
+</ul>
+<p>The view layer's complexity is of a different kind: not concentrated but <em>replicated</em> — three
+overlays, three theming mechanisms, five copies of the DataContext cast. It is cheaper to fix and cheaper to
+ignore than the other two.</p>
+
+<h3>What is designed versus accumulated?</h3>
+<p><strong>Designed, clearly:</strong> the layer boundaries; the one-class-per-convention rule for filesystem
+formats; <code>MatchFinder</code> as a shared matcher; the <code>SaveImplicitly</code> gate; the
+order-before-filter split; the callback-based child view models; the decision not to use a DI container. Each
+of these has explicit reasoning recorded in <code>PLAN.md</code>, and each holds under inspection.</p>
+<p><strong>Accumulated:</strong> <code>MainViewModel</code>'s dependency list; the four independent
+traversals; the overlay triplication; the per-window/global theme mismatch; the four unused interfaces —
+which likely date from the WPF-era service layer, where the renderer genuinely did return HTML and a second
+implementation was plausible.</p>
+<p>The distinction is unusually clean here, which is a compliment to the documentation: the designed parts
+were argued for in writing, and the accumulated parts are precisely the ones no entry in
+<code>PLAN.md</code> ever revisited.</p>
+
+<h3>What deserves human investigation first?</h3>
+<ol>
+  <li><strong><a href="#f1">F1</a> — shared vault identity.</strong> It is the only finding that can produce
+      wrong behaviour, it affects saving, and it will get worse as more per-window state is derived from the
+      shared root. Start with the decision — shared or per-window — not with the code.</li>
+  <li><strong><a href="#f2">F2</a> — no place to put an index.</strong> Not urgent as a performance matter,
+      but it is the constraint that will shape the next feature: backlinks, tags, and note counts all need to
+      ask the vault a question, and today the only available answer is a fifth full walk.</li>
+  <li><strong><a href="#f3">F3</a> — <code>MainViewModel</code>'s growth vector.</strong> Cheap to defuse
+      (a test helper), expensive to fix properly (a split). The cheap step buys time honestly; it should not
+      be mistaken for the fix.</li>
+</ol>
+
+<div class="callout">
+<b>Closing.</b> The instinct to preserve here is stronger than the instinct to change. The layer discipline,
+the single-owner filesystem conventions, the shared matcher and the save gate are better than one typically
+finds at this scale, and every one of them would be easy to lose in a well-intentioned refactor. The three
+items above are worth deliberate attention. Almost nothing else in this report is worth acting on before
+them.
+</div>
+
+<h2 id="summary">Summary Table</h2><div class="rule"></div>
+
+<div class="scroll"><table>
+<thead><tr><th>Finding</th><th>Location</th><th>Consequence</th><th>Severity</th><th>Confidence</th><th>Status</th></tr></thead>
+<tbody>
+<tr>
+  <td><a href="#f1">F1</a> Shared <code>VaultService</code>, per-window cached identity, no invalidation</td>
+  <td class="loc">AppSession.cs:32<br>MainViewModel.cs:499-510<br>VaultService.cs:18-57</td>
+  <td>A vault switch in one window silently changes another window's root — stale title and tree, and an open note can flip between autosave and manual save with no visible cause</td>
+  <td class="sev sev-crit">Critical</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>f455fa9</code></td>
+</tr>
+<tr>
+  <td><a href="#f2">F2</a> No index; all vault I/O synchronous on the UI thread</td>
+  <td class="loc">MainViewModel.cs:475-483<br>QuickSwitcherViewModel.cs:73-84<br>VaultIgnoreService.cs:42-53<br>SearchService.cs:9-31</td>
+  <td>Every keystroke re-walks the vault and re-reads every note on the UI thread; four independent traversals mean there is nowhere an index could be added</td>
+  <td class="sev sev-high">High</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>9bf07e5</code> + task 47</td>
+</tr>
+<tr>
+  <td><a href="#f3">F3</a> <code>MainViewModel</code> god object; 9-arg constructor at 10 test sites</td>
+  <td class="loc">MainViewModel.cs:66-75<br>MainWindowTests.cs:30,73,143,185,231<br>+5 more</td>
+  <td>Each new dependency mechanically edits ten unrelated tests; no structural answer to where feature #10 goes</td>
+  <td class="sev sev-high">High</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>9bf07e5</code></td>
+</tr>
+<tr>
+  <td><a href="#f10">F4</a> Image rendering: no vault containment, synchronous decode, undisposed bitmap</td>
+  <td class="loc">InlineRenderer.cs:162,176-183</td>
+  <td>The only filesystem access in the view layer; a relative path can climb out of the vault, and large images decode on the render pass and are re-decoded as the preview rebuilds</td>
+  <td class="sev sev-high">High</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>9bf07e5</code></td>
+</tr>
+<tr>
+  <td><a href="#f4">F5</a> Four interfaces with one implementation and no test double</td>
+  <td class="loc">IVaultService.cs<br>ISearchService.cs<br>IReplaceService.cs<br>IMarkdownRenderer.cs</td>
+  <td>Indirection with no substitution point, in a codebase where six sibling interfaces demonstrably earn theirs</td>
+  <td class="sev sev-med">Medium</td><td class="sev">High</td>
+  <td class="st st-done">Resolved &middot; <code>0e253e3</code></td>
+</tr>
+<tr>
+  <td><a href="#f5">F6</a> Selection mirrored; all node state replayed manually across tree rebuilds</td>
+  <td class="loc">MainViewModel.cs:457-468,512-527<br>TreeNodeViewModel.cs:15-16</td>
+  <td>Any new per-node state is silently lost on the next filesystem event unless <code>RefreshTree</code> is extended to remember it</td>
+  <td class="sev sev-med">Medium</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>c970b91</code></td>
+</tr>
+<tr>
+  <td><a href="#f7">F7</a> Four matching paths; the exact-then-folded rule written three times</td>
+  <td class="loc">SearchService.cs:9-31<br>MatchFinder.cs:43-96<br>QuickSwitcherViewModel.cs:78-133<br>VaultService.cs:71-101</td>
+  <td>Sidebar search, the quick switcher and wikilink resolution can disagree about which note a word names if the rule is changed in one place</td>
+  <td class="sev sev-med">Medium</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; task 44</td>
+</tr>
+<tr>
+  <td><a href="#f8">F8</a> Static diagram renderer and cache on a control, outside the composition root</td>
+  <td class="loc">MarkdownView.cs:27,31,84-90<br>App.axaml.cs:39</td>
+  <td>The one dependency bypassing <code>AppSession</code>; swapping the renderer abandons the previous cache's Skia memory without disposing it, and tests must set a static</td>
+  <td class="sev sev-med">Medium</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; task 45</td>
+</tr>
+<tr>
+  <td><a href="#f9">F9</a> Drop policy, path payloads and a template-private name in sidebar code-behind</td>
+  <td class="loc">Sidebar.axaml.cs:125-128,134-138,144,161,167</td>
+  <td>A product rule (25/75 drop thresholds) sits where it cannot be unit-tested; <code>PART_LayoutRoot</code> is an unversioned Fluent internal that breaks silently</td>
+  <td class="sev sev-med">Medium</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; task 43</td>
+</tr>
+<tr>
+  <td><a href="#f12">F10</a> Two error-to-dialog funnels, one documented as the only one</td>
+  <td class="loc">MainViewModel.cs:571-594<br>App.axaml.cs:33-37</td>
+  <td>The global handler marks every exception handled, so a missing <code>Guard</code> on a new path is invisible during development</td>
+  <td class="sev sev-low">Low</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; task 48</td>
+</tr>
+<tr>
+  <td><a href="#f11">F11</a> LRU disposes bitmaps a live view may still be drawing</td>
+  <td class="loc">Lru.cs:20-25<br>DiagramView.cs:67-81<br>DiagramCache.cs:19</td>
+  <td>With &gt;32 live <code>(source, dark, pixelWidth)</code> keys, one diagram's rasterisation can dispose another visible diagram's bitmap</td>
+  <td class="sev sev-low">Low</td><td class="sev">Medium</td>
+  <td class="st st-done">Fixed &middot; task 46</td>
+</tr>
+<tr>
+  <td><a href="#f13">F12</a> Three overlays duplicate scrim, card, Escape, click-outside and focus</td>
+  <td class="loc">QuickSwitcher.axaml(.cs)<br>SearchReplace.axaml(.cs)<br>SettingsPanel.axaml(.cs)</td>
+  <td>Divergence has already started — only the settings panel has the focus-commit fix; any overlay fix must be applied three times</td>
+  <td class="sev sev-low">Low</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>f455fa9</code></td>
+</tr>
+<tr>
+  <td><a href="#f14">F13</a> Three theming mechanisms; diagram colours are a second palette</td>
+  <td class="loc">Palette.axaml:5-15,33-43<br>App.axaml.cs:53-60<br>MermaiderDiagramRenderer.cs:12-13</td>
+  <td>Editing the palette restyles everything except diagrams; theme is per-window state with an application-global effect, so the losing window's persisted setting is overridden</td>
+  <td class="sev sev-low">Low</td><td class="sev">High</td>
+  <td class="st st-done">Fixed &middot; <code>f455fa9</code></td>
+</tr>
+</tbody></table></div>
+
+<footer>
+  <p>Architecture review of <strong>MdNotes</strong> — static analysis of the working tree, 2026-09-18.
+  No source file was created, modified or deleted; the build and test suite were not run.
+  Every <code>file:line</code> reference was read directly from the working tree.</p>
+  <p>Status badges and the Status column added 2026-09-21 from a re-read of the working tree at
+  <code>bfacc67</code>. The findings themselves are unchanged.</p>
+</footer>
+
+</div>
+</body>
+</html>

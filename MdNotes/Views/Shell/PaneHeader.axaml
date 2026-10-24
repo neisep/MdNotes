@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MdNotes.ViewModels"
+             xmlns:m="using:MdNotes.Models"
+             x:Class="MdNotes.Views.Shell.PaneHeader"
+             x:DataType="vm:MainViewModel">
+  <Border Height="40"
+          Background="{DynamicResource MdSurfaceAlt}"
+          BorderBrush="{DynamicResource MdBorder}"
+          BorderThickness="0,0,0,1"
+          Padding="16,0,8,0"
+          IsVisible="{Binding Editor.HasNote}">
+    <DockPanel>
+      <!-- Right: View mode buttons -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+        <!-- Import a loose file into the vault (copies; the original stays put) -->
+        <Button Classes="icon"
+                Command="{Binding Workspace.ImportToVaultCommand}"
+                IsVisible="{Binding Editor.IsLooseFile}"
+                ToolTip.Tip="Import into vault">
+          <Path Classes="icon" Data="{StaticResource Icon.folder-input}" />
+        </Button>
+
+        <!-- Edit -->
+        <Button Classes="icon"
+                Command="{Binding SetViewModeCommand}"
+                CommandParameter="{x:Static m:ViewMode.Edit}"
+                Classes.active="{Binding IsEditOnly}"
+                ToolTip.Tip="Edit (Ctrl+E toggles)">
+          <Path Classes="icon" Data="{StaticResource Icon.pencil}" />
+        </Button>
+
+        <!-- Split -->
+        <Button Classes="icon"
+                Command="{Binding SetViewModeCommand}"
+                CommandParameter="{x:Static m:ViewMode.Split}"
+                Classes.active="{Binding IsSplit}"
+                ToolTip.Tip="Split">
+          <Path Classes="icon" Data="{StaticResource Icon.columns-2}" />
+        </Button>
+
+        <!-- Reading -->
+        <Button Classes="icon"
+                Command="{Binding SetViewModeCommand}"
+                CommandParameter="{x:Static m:ViewMode.Reading}"
+                Classes.active="{Binding IsReadingOnly}"
+                ToolTip.Tip="Reading">
+          <Path Classes="icon" Data="{StaticResource Icon.book-open}" />
+        </Button>
+      </StackPanel>
+
+      <!-- Left: Breadcrumb (rename button) -->
+      <Button Classes="icon"
+              Width="NaN"
+              Height="28"
+              Padding="8,0"
+              Command="{Binding Workspace.RenameCurrentNoteCommand}"
+              ToolTip.Tip="Rename note"
+              VerticalAlignment="Center">
+        <TextBlock Text="{Binding Editor.Breadcrumb}"
+                   FontSize="13"
+                   Foreground="{DynamicResource MdTextMuted}"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis" />
+      </Button>
+    </DockPanel>
+  </Border>
+</UserControl>

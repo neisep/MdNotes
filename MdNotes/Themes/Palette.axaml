@@ -1,0 +1,61 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="MdSurface" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="MdSurfaceAlt" Color="#FFF6F6F6" />
+            <SolidColorBrush x:Key="MdSurfaceCode" Color="#FFF2F2F2" />
+            <SolidColorBrush x:Key="MdBorder" Color="#FFE0E0E0" />
+            <SolidColorBrush x:Key="MdText" Color="#FF222222" />
+            <SolidColorBrush x:Key="MdTextMuted" Color="#FF5C5C5C" />
+            <SolidColorBrush x:Key="MdTextFaint" Color="#FFABABAB" />
+            <SolidColorBrush x:Key="MdAccent" Color="#FF7F6DF2" />
+            <SolidColorBrush x:Key="MdAccentSoft" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="MdHover" Color="#10000000" />
+            <SolidColorBrush x:Key="MdError" Color="#FFC62828" />
+
+            <!-- Fluent list/tree selection = MdAccentSoft / MdHover -->
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#10000000" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="TreeViewItemForegroundSelected" Color="#FF222222" />
+            <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPointerOver" Color="#FF222222" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#10000000" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="#FF222222" />
+            <SolidColorBrush x:Key="SystemControlHighlightListAccentLowBrush" Color="#267F6DF2" />
+            <SolidColorBrush x:Key="SystemControlHighlightListAccentMediumBrush" Color="#267F6DF2" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="MdSurface" Color="#FF1E1E1E" />
+            <SolidColorBrush x:Key="MdSurfaceAlt" Color="#FF262626" />
+            <SolidColorBrush x:Key="MdSurfaceCode" Color="#FF242424" />
+            <SolidColorBrush x:Key="MdBorder" Color="#FF363636" />
+            <SolidColorBrush x:Key="MdText" Color="#FFDADADA" />
+            <SolidColorBrush x:Key="MdTextMuted" Color="#FFB3B3B3" />
+            <SolidColorBrush x:Key="MdTextFaint" Color="#FF666666" />
+            <SolidColorBrush x:Key="MdAccent" Color="#FFA78BFA" />
+            <SolidColorBrush x:Key="MdAccentSoft" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="MdHover" Color="#13FFFFFF" />
+            <SolidColorBrush x:Key="MdError" Color="#FFEF5350" />
+
+            <!-- Fluent list/tree selection = MdAccentSoft / MdHover -->
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#13FFFFFF" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="TreeViewItemForegroundSelected" Color="#FFDADADA" />
+            <SolidColorBrush x:Key="TreeViewItemForegroundSelectedPointerOver" Color="#FFDADADA" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#13FFFFFF" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="ListBoxItemForegroundSelected" Color="#FFDADADA" />
+            <SolidColorBrush x:Key="SystemControlHighlightListAccentLowBrush" Color="#26A78BFA" />
+            <SolidColorBrush x:Key="SystemControlHighlightListAccentMediumBrush" Color="#26A78BFA" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

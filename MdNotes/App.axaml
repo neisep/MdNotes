@@ -1,0 +1,30 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MdNotes.App">
+    <Application.Styles>
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#7F6DF2" RegionColor="#FFFFFF" AltHigh="#FFFFFF" AltLow="#FFFFFF" AltMedium="#FFFFFF" AltMediumHigh="#FFFFFF" AltMediumLow="#FFFFFF"
+                    BaseHigh="#222222" BaseMedium="#5C5C5C" BaseMediumHigh="#444444" BaseMediumLow="#8A8A8A" BaseLow="#E0E0E0"
+                    ChromeAltLow="#444444" ChromeBlackHigh="#000000" ChromeBlackLow="#33000000" ChromeBlackMedium="#CC000000" ChromeBlackMediumLow="#66000000"
+                    ChromeDisabledHigh="#E0E0E0" ChromeDisabledLow="#ABABAB" ChromeGray="#707070" ChromeHigh="#E0E0E0" ChromeLow="#F6F6F6" ChromeMedium="#F2F2F2" ChromeMediumLow="#F6F6F6" ChromeWhite="#FFFFFF"
+                    ListLow="#10000000" ListMedium="#1A000000" ErrorText="#C62828" />
+                <ColorPaletteResources x:Key="Dark" Accent="#A78BFA" RegionColor="#1E1E1E" AltHigh="#1E1E1E" AltLow="#1E1E1E" AltMedium="#1E1E1E" AltMediumHigh="#1E1E1E" AltMediumLow="#1E1E1E"
+                    BaseHigh="#DADADA" BaseMedium="#B3B3B3" BaseMediumHigh="#C8C8C8" BaseMediumLow="#8A8A8A" BaseLow="#363636"
+                    ChromeAltLow="#C8C8C8" ChromeBlackHigh="#000000" ChromeBlackLow="#33000000" ChromeBlackMedium="#CC000000" ChromeBlackMediumLow="#66000000"
+                    ChromeDisabledHigh="#363636" ChromeDisabledLow="#666666" ChromeGray="#999999" ChromeHigh="#363636" ChromeLow="#262626" ChromeMedium="#242424" ChromeMediumLow="#262626" ChromeWhite="#FFFFFF"
+                    ListLow="#13FFFFFF" ListMedium="#1FFFFFFF" ErrorText="#EF5350" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
+        <StyleInclude Source="avares://MdNotes/Themes/Controls.axaml" />
+    </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://MdNotes/Themes/Palette.axaml" />
+                <ResourceInclude Source="avares://MdNotes/Assets/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

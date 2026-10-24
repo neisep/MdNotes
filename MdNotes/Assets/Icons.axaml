@@ -1,0 +1,25 @@
+<!-- Lucide icons (https://lucide.dev), ISC licence. 24x24 stroke paths. -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StreamGeometry x:Key="Icon.files">M15 2h-4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8 M16.706 2.706A2.4 2.4 0 0 0 15 2v5a1 1 0 0 0 1 1h5a2.4 2.4 0 0 0-.706-1.706z M5 7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8a2 2 0 0 0 1.732-1</StreamGeometry>
+  <StreamGeometry x:Key="Icon.search">m21 21-4.34-4.34 M 3,11 a 8,8 0 1,0 16,0 a 8,8 0 1,0 -16,0</StreamGeometry>
+  <StreamGeometry x:Key="Icon.plus">M5 12h14 M12 5v14</StreamGeometry>
+  <StreamGeometry x:Key="Icon.folder">M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.folder-plus">M12 10v6 M9 13h6 M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.folder-input">M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1 M2 13h10 M9 16l3-3-3-3</StreamGeometry>
+  <StreamGeometry x:Key="Icon.file-check">M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z M14 2v4a2 2 0 0 0 2 2h4 M9 15l2 2 4-4</StreamGeometry>
+  <StreamGeometry x:Key="Icon.chevrons-down-up">M7 20l5-5 5 5 M7 4l5 5 5-5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.command">M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3</StreamGeometry>
+  <StreamGeometry x:Key="Icon.moon">M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.folder-open">m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2</StreamGeometry>
+  <StreamGeometry x:Key="Icon.pencil">M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z M15 5l4 4</StreamGeometry>
+  <StreamGeometry x:Key="Icon.columns-2">M12 3v18 M 5,3 H 19 A 2,2 0 0 1 21,5 V 19 A 2,2 0 0 1 19,21 H 5 A 2,2 0 0 1 3,19 V 5 A 2,2 0 0 1 5,3 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.book-open">M12 5v16 M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.x">M18 6 6 18 M6 6l12 12</StreamGeometry>
+  <StreamGeometry x:Key="Icon.file-text">M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z M14 2v5a1 1 0 0 0 1 1h5 M10 9H8 M16 13H8 M16 17H8</StreamGeometry>
+  <StreamGeometry x:Key="Icon.square">M 5,3 H 19 A 2,2 0 0 1 21,5 V 19 A 2,2 0 0 1 19,21 H 5 A 2,2 0 0 1 3,19 V 5 A 2,2 0 0 1 5,3 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.chevron-down">m6 9 6 6 6-6</StreamGeometry>
+  <StreamGeometry x:Key="Icon.replace">M14 4a1 1 0 0 1 1-1 M15 10a1 1 0 0 1-1-1 M21 4a1 1 0 0 0-1-1 M21 9a1 1 0 0 1-1 1 M3 7l3 3 3-3 M6 10V5a2 2 0 0 1 2-2h2 M 4,14 H 9 A 1,1 0 0 1 10,15 V 20 A 1,1 0 0 1 9,21 H 4 A 1,1 0 0 1 3,20 V 15 A 1,1 0 0 1 4,14 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.rotate-ccw">M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5</StreamGeometry>
+  <StreamGeometry x:Key="Icon.square-check">m16 9-5.5 5.5L8 12 M 5,3 H 19 A 2,2 0 0 1 21,5 V 19 A 2,2 0 0 1 19,21 H 5 A 2,2 0 0 1 3,19 V 5 A 2,2 0 0 1 5,3 Z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.settings">M20 7h-9 M14 17H5 M 14,17 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0 M 4,7 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0</StreamGeometry>
+</ResourceDictionary>

@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MdNotes.ViewModels"
+             xmlns:m="using:MdNotes.Models"
+             x:Class="MdNotes.Views.Shell.Sidebar"
+             x:DataType="vm:VaultWorkspaceViewModel">
+
+    <Border Background="{DynamicResource MdSurfaceAlt}">
+        <DockPanel>
+            <!-- Header row -->
+            <Grid DockPanel.Dock="Top" Height="36" Margin="12,0,6,0" ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding VaultName}" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource MdTextMuted}" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                            IsVisible="{Binding HasVault}">
+                    <!-- New note -->
+                    <Button Classes="icon" Width="28" Height="28" Command="{Binding NewNoteCommand}"
+                            ToolTip.Tip="New note (Ctrl+N)">
+                        <Path Classes="icon" Width="16" Height="16" Data="{StaticResource Icon.plus}" />
+                    </Button>
+
+                    <!-- New folder -->
+                    <Button Classes="icon" Width="28" Height="28" Command="{Binding NewFolderCommand}"
+                            ToolTip.Tip="New folder">
+                        <Path Classes="icon" Width="16" Height="16" Data="{StaticResource Icon.folder-plus}" />
+                    </Button>
+
+                    <!-- Collapse all -->
+                    <Button Classes="icon" Width="28" Height="28" Command="{Binding CollapseAllCommand}"
+                            ToolTip.Tip="Collapse all">
+                        <Path Classes="icon" Width="16" Height="16" Data="{StaticResource Icon.chevrons-down-up}" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Search box -->
+            <TextBox x:Name="SearchBox" DockPanel.Dock="Top" Classes="search"
+                     IsVisible="{Binding HasVault}"
+                     Text="{Binding SearchQuery}" PlaceholderText="Search notes…" Margin="8,0,8,8">
+                <TextBox.InnerLeftContent>
+                    <Path Classes="icon" Width="14" Height="14" Margin="8,0,0,0" Data="{StaticResource Icon.search}" />
+                </TextBox.InnerLeftContent>
+                <TextBox.InnerRightContent>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Classes="icon" Width="24" Height="24" IsVisible="{Binding IsSearching}"
+                                Click="OnClearSearch">
+                            <Path Classes="icon" Width="12" Height="12" Data="{StaticResource Icon.x}" />
+                        </Button>
+                        <Button Classes="icon" Width="24" Height="24" Command="{Binding OpenSearchReplaceCommand}"
+                                ToolTip.Tip="Search and replace across the vault (Ctrl+Shift+H)">
+                            <Path Classes="icon" Width="14" Height="14" Data="{StaticResource Icon.replace}" />
+                        </Button>
+                    </StackPanel>
+                </TextBox.InnerRightContent>
+            </TextBox>
+
+            <!-- Tree/List panel -->
+            <Panel x:Name="TreePanel">
+                <!-- Tree view -->
+                <TreeView x:Name="VaultTree" ItemsSource="{Binding Tree}" SelectedItem="{Binding SelectedNode}"
+                          IsVisible="{Binding !IsSearching}"
+                          PointerMoved="OnTreePointerMoved" PointerReleased="OnTreePointerReleased"
+                          DragDrop.AllowDrop="True" Background="Transparent" Margin="4,0">
+                    <TreeView.KeyBindings>
+                        <KeyBinding Gesture="Alt+Up" Command="{Binding MoveUpCommand}" />
+                        <KeyBinding Gesture="Alt+Down" Command="{Binding MoveDownCommand}" />
+                    </TreeView.KeyBindings>
+                    <TreeView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="New note" Command="{Binding NewNoteCommand}" InputGesture="Ctrl+N" />
+                            <MenuItem Header="New folder" Command="{Binding NewFolderCommand}" />
+                            <Separator />
+                            <MenuItem Header="Search and replace…" Command="{Binding OpenSearchReplaceCommand}"
+                                      InputGesture="Ctrl+Shift+H" />
+                            <Separator />
+                            <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" InputGesture="Alt+Up" />
+                            <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" InputGesture="Alt+Down" />
+                            <MenuItem Header="Reset order" Command="{Binding ResetOrderCommand}" />
+                            <Separator />
+                            <MenuItem Header="Rename" Command="{Binding RenameCommand}" />
+                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                        </ContextMenu>
+                    </TreeView.ContextMenu>
+                    <TreeView.Styles>
+                        <Style Selector="TreeViewItem" x:DataType="vm:TreeNodeViewModel">
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        </Style>
+                    </TreeView.Styles>
+                    <TreeView.ItemTemplate>
+                        <TreeDataTemplate x:DataType="vm:TreeNodeViewModel" ItemsSource="{Binding Children}">
+                            <!-- Named so the drag can put the drop highlight on it; the highlight is the view's own
+                                 business and is never written back onto the row. -->
+                            <Border x:Name="Row" HorizontalAlignment="Stretch" Padding="2,0">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{Binding Display}" FontWeight="SemiBold"
+                                               IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Display}"
+                                               IsVisible="{Binding !IsFolder}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+
+                <!-- Search results -->
+                <ListBox ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedHit}"
+                         IsVisible="{Binding IsSearching}" Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="m:SearchHit">
+                            <StackPanel Margin="2">
+                                <TextBlock Text="{Binding Name}" FontSize="13" />
+                                <TextBlock Text="{Binding Snippet}" TextWrapping="Wrap"
+                                           FontSize="12" Foreground="{DynamicResource MdTextMuted}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Drag insertion line; positioned from code-behind during DragOver -->
+                <Border x:Name="DropLine" Height="2" VerticalAlignment="Top" IsVisible="False"
+                        IsHitTestVisible="False" Background="{DynamicResource MdAccent}" />
+
+                <!-- No vault: a window opened on a loose file has nothing to list -->
+                <StackPanel IsVisible="{Binding !HasVault}" Spacing="10" Margin="16,24"
+                            VerticalAlignment="Top" HorizontalAlignment="Center">
+                    <TextBlock Text="No vault open" FontSize="13" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource MdTextMuted}" />
+                    <Button Content="Open vault…" Command="{Binding OpenVaultCommand}"
+                            HorizontalAlignment="Center" />
+                </StackPanel>
+            </Panel>
+        </DockPanel>
+    </Border>
+</UserControl>

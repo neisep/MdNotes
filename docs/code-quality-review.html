@@ -1,0 +1,2418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MdNotes Code Quality Review</title>
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#ffffff; --panel-2:#f4f4f2; --ink:#1c1c1a; --ink-2:#55544f;
+  --ink-3:#86847c; --rule:#e3e2dd; --rule-2:#d2d0c9; --accent:#5b4bd6;
+  --crit:#b3261e; --high:#b5540c; --med:#7a6a10; --low:#4a6b57; --good:#2f6b4f;
+  --code-bg:#f2f1ee; --mark:#fdf3c9;
+  --sev-crit-bg:#fbeceb; --sev-high-bg:#fcf0e4; --sev-med-bg:#faf6e0; --sev-low-bg:#edf3ef;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16161a; --panel:#1e1e23; --panel-2:#26262c; --ink:#e9e8e4; --ink-2:#b3b1aa;
+    --ink-3:#817f78; --rule:#2e2e35; --rule-2:#3c3c45; --accent:#a99bff;
+    --crit:#ff8a80; --high:#ffb072; --med:#e3cf6a; --low:#8fc9a8; --good:#7fd0a6;
+    --code-bg:#24242a; --mark:#4a4222;
+    --sev-crit-bg:#2e1c1b; --sev-high-bg:#2d2218; --sev-med-bg:#2a2718; --sev-low-bg:#1d2722;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16161a; --panel:#1e1e23; --panel-2:#26262c; --ink:#e9e8e4; --ink-2:#b3b1aa;
+  --ink-3:#817f78; --rule:#2e2e35; --rule-2:#3c3c45; --accent:#a99bff;
+  --crit:#ff8a80; --high:#ffb072; --med:#e3cf6a; --low:#8fc9a8; --good:#7fd0a6;
+  --code-bg:#24242a; --mark:#4a4222;
+  --sev-crit-bg:#2e1c1b; --sev-high-bg:#2d2218; --sev-med-bg:#2a2718; --sev-low-bg:#1d2722;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:1.5rem}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.65 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:62rem; margin:0 auto; padding:0 16px 6rem}
+code,kbd,.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+code{background:var(--code-bg); padding:.1em .35em; border-radius:4px; font-size:.86em; word-break:break-word}
+pre{background:var(--code-bg); border:1px solid var(--rule); border-radius:8px; padding:.9rem 1rem;
+    overflow-x:auto; font-size:.82rem; line-height:1.55}
+pre code{background:none; padding:0; font-size:inherit}
+a{color:var(--accent)}
+h1,h2,h3,h4{line-height:1.25; letter-spacing:-.011em}
+h1{font-size:2.1rem; margin:0 0 .35rem; font-weight:700}
+h2{font-size:1.32rem; margin:3.2rem 0 .2rem; font-weight:650; scroll-margin-top:1rem}
+h2 .num{color:var(--ink-3); font-weight:500; margin-right:.5rem; font-variant-numeric:tabular-nums}
+h3{font-size:1.02rem; margin:1.9rem 0 .5rem; font-weight:650}
+h2 + .rule{height:2px; background:linear-gradient(90deg,var(--accent),transparent); margin:.55rem 0 1.4rem; border-radius:2px}
+p{margin:.7rem 0}
+ul,ol{margin:.6rem 0; padding-left:1.25rem}
+li{margin:.3rem 0}
+header.masthead{padding:3.2rem 0 1.6rem; border-bottom:1px solid var(--rule); margin-bottom:.5rem}
+.sub{color:var(--ink-2); font-size:1.02rem; margin:.4rem 0 1.1rem; max-width:48rem}
+.meta{display:flex; flex-wrap:wrap; gap:.4rem .5rem; font-size:.78rem}
+.chip{background:var(--panel-2); border:1px solid var(--rule); border-radius:999px;
+      padding:.2rem .65rem; color:var(--ink-2); white-space:nowrap}
+.chip b{color:var(--ink); font-weight:600}
+nav.toc{background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:1rem 1.15rem; margin:2rem 0}
+nav.toc h4{margin:0 0 .6rem; font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--ink-3)}
+nav.toc ol{margin:0; padding-left:1.35rem; columns:2; column-gap:2rem; font-size:.88rem}
+nav.toc li{margin:.18rem 0; break-inside:avoid}
+nav.toc a{text-decoration:none}
+nav.toc a:hover{text-decoration:underline}
+@media (max-width:640px){nav.toc ol{columns:1}}
+.card{background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:1.1rem 1.2rem; margin:1rem 0}
+.callout{border-left:3px solid var(--accent); background:var(--panel); border-radius:0 10px 10px 0;
+         padding:.85rem 1.1rem; margin:1.1rem 0; font-size:.95rem}
+.callout b{color:var(--ink)}
+.finding{background:var(--panel); border:1px solid var(--rule); border-radius:12px; margin:1.3rem 0; overflow:hidden}
+.finding > .head{display:flex; gap:.7rem; align-items:flex-start; padding:.95rem 1.15rem .7rem;
+                 border-bottom:1px solid var(--rule)}
+.finding.crit > .head{background:var(--sev-crit-bg)}
+.finding.high > .head{background:var(--sev-high-bg)}
+.finding.med > .head{background:var(--sev-med-bg)}
+.finding.low > .head{background:var(--sev-low-bg)}
+.finding .fid{font:600 .74rem/1.5 ui-monospace,monospace; color:var(--ink-3); padding-top:.2rem; flex:none}
+.finding h3{margin:0; font-size:1rem; flex:1}
+.finding .body{padding:.3rem 1.15rem 1.05rem}
+.finding .body > p:first-child{margin-top:.7rem}
+.lbl{font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-3);
+     font-weight:650; display:block; margin:1rem 0 .25rem}
+.badges{display:flex; gap:.35rem; flex-wrap:wrap; flex:none; padding-top:.1rem}
+.b{font-size:.68rem; font-weight:650; letter-spacing:.05em; text-transform:uppercase;
+   padding:.16rem .5rem; border-radius:5px; border:1px solid currentColor; white-space:nowrap}
+.b.crit{color:var(--crit)} .b.high{color:var(--high)} .b.med{color:var(--med)} .b.low{color:var(--low)}
+.b.conf{color:var(--ink-3)}
+.b.st{border-style:dashed}
+.b.st.done{color:var(--good); border-style:solid}
+.b.st.part{color:var(--high)}
+.b.st.open{color:var(--crit)}
+.status{border-left:3px solid var(--good); background:var(--panel-2);
+        border-radius:0 8px 8px 0; padding:.55rem .85rem; margin:1.2rem 0 .1rem; font-size:.9rem}
+.status.part{border-left-color:var(--high)}
+.status.open{border-left-color:var(--crit)}
+.status p{margin:.3rem 0}
+.status .lbl{margin:0 0 .35rem}
+td.st{white-space:nowrap; font-weight:650; font-size:.76rem}
+.st-done{color:var(--good)} .st-part{color:var(--high)} .st-open{color:var(--crit)}
+.banner{background:var(--panel); border:1px solid var(--rule); border-left:3px solid var(--good);
+        border-radius:0 12px 12px 0; padding:.85rem 1.1rem; margin:1.6rem 0; font-size:.9rem}
+.banner p{margin:.35rem 0}
+.ev{background:var(--panel-2); border:1px solid var(--rule); border-radius:8px; padding:.6rem .8rem; margin:.3rem 0}
+.ev ul{margin:0; padding-left:1.1rem; font-size:.88rem}
+.ev li{margin:.22rem 0}
+.dir{border-left:2px solid var(--rule-2); padding-left:.9rem; color:var(--ink-2); font-size:.94rem}
+table{width:100%; border-collapse:collapse; margin:1.1rem 0; font-size:.83rem}
+th,td{text-align:left; padding:.55rem .6rem; border-bottom:1px solid var(--rule); vertical-align:top}
+th{font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); font-weight:650;
+   border-bottom:1px solid var(--rule-2); position:sticky; top:0; background:var(--bg)}
+tbody tr:hover{background:var(--panel-2)}
+td.loc{font-family:ui-monospace,monospace; font-size:.76rem; color:var(--ink-2); white-space:nowrap}
+td.sev{white-space:nowrap; font-weight:650; font-size:.76rem}
+.sev-crit{color:var(--crit)} .sev-high{color:var(--high)} .sev-med{color:var(--med)} .sev-low{color:var(--low)}
+.scroll{overflow-x:auto; -webkit-overflow-scrolling:touch}
+.good{border-left:3px solid var(--good)}
+.good h3{color:var(--good)}
+figure{margin:1.6rem 0}
+figure svg{width:100%; height:auto; display:block; background:var(--panel);
+            border:1px solid var(--rule); border-radius:12px}
+figcaption{font-size:.78rem; color:var(--ink-3); margin-top:.55rem; text-align:center}
+.svg-box{fill:var(--panel-2); stroke:var(--rule-2)}
+.svg-box-accent{fill:var(--panel-2); stroke:var(--accent)}
+.svg-lane{fill:none; stroke:var(--rule); stroke-dasharray:4 4}
+.svg-t{fill:var(--ink); font:600 12px ui-sans-serif,system-ui,sans-serif}
+.svg-s{fill:var(--ink-2); font:10px ui-monospace,monospace}
+.svg-lane-t{fill:var(--ink-3); font:650 10px ui-sans-serif,system-ui,sans-serif; letter-spacing:.09em}
+.svg-arrow{stroke:var(--ink-3); fill:none; stroke-width:1.4}
+.svg-arrow-hot{stroke:var(--crit); fill:none; stroke-width:1.6; stroke-dasharray:5 3}
+.svg-hot-t{fill:var(--crit); font:650 10px ui-sans-serif,system-ui,sans-serif}
+footer{margin-top:4rem; padding-top:1.3rem; border-top:1px solid var(--rule);
+       color:var(--ink-3); font-size:.8rem}
+mark{background:var(--mark); color:var(--ink); padding:0 .2em; border-radius:3px}
+.two{display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+@media (max-width:720px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <h1>MdNotes — Code Quality &amp; Maintainability Review</h1>
+  <p class="sub">A read-only review of implementation quality: where the code is harder to understand,
+  change, test or debug than the job requires — and, just as deliberately, where it is already right
+  and should be left alone. Architecture is out of scope; this is about how the code is written.</p>
+  <div class="meta">
+    <span class="chip"><b>Date</b> 2026-09-21</span>
+    <span class="chip"><b>Scope</b> working tree at <code>89d3067</code></span>
+    <span class="chip"><b>Source</b> 6 579 LOC across 79 files</span>
+    <span class="chip"><b>Views</b> 11 .axaml + 2 theme dictionaries</span>
+    <span class="chip"><b>Tests</b> 51 files · 467 pass / 2 fail / 3 skip</span>
+    <span class="chip"><b>Stack</b> .NET 10 · Avalonia 12.1.2 · CommunityToolkit.Mvvm 8.4.2</span>
+    <span class="chip"><b>Method</b> full read + 3 cross-cutting sweeps — nothing modified</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">Maintainability Overview</a></li>
+    <li><a href="#s3">Critical &amp; High Findings</a></li>
+    <li><a href="#s4">Medium &amp; Low Findings</a></li>
+    <li><a href="#s5">Complexity Hotspots</a></li>
+    <li><a href="#s6">Duplication &amp; Consistency</a></li>
+    <li><a href="#s7">Error-Prone Implementation</a></li>
+    <li><a href="#s8">Change Amplification</a></li>
+    <li><a href="#s9">AI-Assisted Development Smells</a></li>
+    <li><a href="#s10">Language / Framework Usage</a></li>
+    <li><a href="#s11">Positive Findings</a></li>
+    <li><a href="#s12">Simplification Opportunities</a></li>
+    <li><a href="#s13">Areas Requiring Manual Verification</a></li>
+    <li><a href="#s14">Overall Maintainability Assessment</a></li>
+    <li><a href="#summary">Summary Table</a></li>
+  </ol>
+</nav>
+
+<div class="banner">
+  <span class="lbl">How this review was done</span>
+  <p>Every production file under <code>MdNotes/</code> was read in full rather than sampled, and three
+  systematic sweeps were run across the whole tree — one over every <code>catch</code> block and
+  error-swallowing construct, one over every path and text-matching expression, one tracing four
+  realistic feature changes to every site they touch. Nothing here is called <em>systemic</em> on the
+  strength of a single example; where a pattern is claimed to repeat, every occurrence is listed.</p>
+  <p>The test suite was run once, read-only, to establish a baseline:
+  <strong>467 passed, 2 failed, 3 skipped</strong>. The two failures are Linux-only and are themselves
+  a finding (<a href="#f-m8">M8</a>). Nothing in the repository was modified.</p>
+</div>
+
+<h2 id="s1"><span class="num">1</span>Executive Summary</h2><div class="rule"></div>
+
+<p><strong>This is a well-maintained codebase.</strong> That is the honest headline and it should be
+read before the findings, because a list of twenty-eight numbered problems reads worse than the code
+actually is. Layering is strict, side effects are contained, state transitions are small and explicit,
+and the doc comments are the best thing here: they record <em>why</em> a decision was made, what was
+tried before, and what it cost — <code>NoteContentCache</code> carries measured timings, <code>AppServices</code>
+records the fourteen-site edit it eliminated, <code>TreeNodeViewModel.Same</code> explains why it is
+deliberately stricter than its neighbour. Most reviews of a 6 500-line app do not find that.</p>
+
+<p>Against that baseline, the findings fall into four groups.</p>
+
+<ul>
+  <li><strong>Two real defects.</strong> Autosave failures escape the project's own error convention and
+      surface as crash-barrier messages (<a href="#f-h1">H1</a>), and a corrupt <code>settings.json</code>
+      is an unrecoverable startup crash before any UI exists to report it (<a href="#f-h2">H2</a>).
+      Both are small fixes in single files.</li>
+  <li><strong>A recurring shape: a comment asserts a rule the code does not enforce.</strong>
+      <code>&quot;The one place that decides&quot;</code> above a constant declared four times
+      (<a href="#f-m1">M1</a>); <code>&quot;the interval the other two timers use&quot;</code> above
+      three unlinked literals (<a href="#f-m13">M13</a>); <code>&quot;The one place that answers
+      it&quot;</code> above one of three fallbacks (<a href="#f-l11">L11</a>); a precondition documented
+      in a caller and honoured by no other (<a href="#f-m7">M7</a>). The comments are the codebase's
+      greatest asset, which is exactly why the ones that have quietly become false matter.</li>
+  <li><strong>Settings are the one genuine change-amplification hotspot.</strong> Adding a single toggle
+      is eight mandatory edits, three of them in one file — and then a choice between four different,
+      undocumented ways of making the setting take effect, one of which already leaves a second window
+      showing stale values (<a href="#f-ca1">CA1</a>). By contrast, adding a <em>service</em> is one
+      line, and adding an <em>overlay</em> is genuinely cheap. The project has solved this problem twice
+      already and simply has not solved it here.</li>
+  <li><strong>A long tail of small inconsistencies</strong> — four caches with four eviction policies,
+      three filesystem error policies, one case-sensitive path comparison among nine insensitive ones —
+      each harmless today, each a place where two readings of the same question can drift apart.</li>
+</ul>
+
+<p>Nothing here calls for restructuring. The highest-value work is roughly a day: two guards, one
+try/catch, one constant, and making four comments true again.</p>
+
+<h2 id="s2"><span class="num">2</span>Maintainability Overview</h2><div class="rule"></div>
+
+<p><strong>Conventions, as actually practised.</strong> The house style is consistent enough that
+departures from it stand out: expression-bodied members, C# pattern matching (<code>is { } x</code>,
+switch expressions, list patterns), single statements without braces, <code>ObservableProperty</code>
+source generators for view-model state, and constructor-injected dependencies held in
+<code>readonly</code> fields. Nullable reference types are on project-wide
+(<code>MdNotes.csproj:7</code>) with only nine <code>!</code> operators in the whole tree.</p>
+
+<p><strong>Error handling is a deliberate two-tier design</strong>, documented at
+<code>DialogGuard.cs:5-18</code> and pinned by <code>ErrorFunnelTests</code>: failures a command can
+foresee go through <code>Guard</code> and reach the user in the words they were thrown with; anything
+that escapes hits the crash barrier at <code>App.axaml.cs:38</code>, which says the failure was
+<em>unexpected</em>. The second message is meant to be a signal that a guard is missing. That design is
+good, and it is the yardstick <a href="#f-h1">H1</a> is measured against — the finding is not that the
+convention is wrong but that two call sites escape it.</p>
+
+<p><strong>State management is clean.</strong> One <code>VaultService</code> per process behind a
+revision-stamped snapshot; view models read it rather than caching it, with a documented reason
+(<code>VaultWorkspaceViewModel.cs:75-79</code>). Background work is cancelled by generation counters
+and <code>CancellationTokenSource</code>s, and the reasoning is written down at each site. There are no
+<code>.Result</code>, <code>.Wait()</code> or <code>.GetAwaiter().GetResult()</code> calls anywhere —
+notable in a desktop app, and worth saying out loud.</p>
+
+<p><strong>Testability is the strongest single attribute.</strong> Nine of the ten services reach the
+app through an interface; <code>Fakes.cs</code> provides recording doubles, including a
+<code>ThrowingDialogs</code> whose purpose is to make a swallowed error fail the test. <code>TempVault</code>
+and <code>TestServices</code> make a real vault over a temp folder a two-line setup, and the headless
+Avalonia harness means whole windows are exercised. Rules that a UI could otherwise hide are pushed
+into pure functions and tested directly — <code>VaultWorkspaceViewModel.PositionIn</code> is the clearest
+example, with a comment explaining that it exists so drop semantics can be tested without a pointer.</p>
+
+<p><strong>Where the fabric is thinner.</strong> Four files read as though they were written to a
+different brief from the code around them — <code>MainWindow.axaml.cs</code>,
+<code>QuickSwitcherViewModel.RefreshResults</code>, <code>EditorViewModel.UpdateNoteLabels</code> and
+<code>BlockRenderer.List</code> — and the two view-layer ones are also where the fragile constructs
+live. <code>JsonSettingsService</code> is the only service with no test file of its own, and it is also
+the one that can stop the app from starting.</p>
+
+<h2 id="s3"><span class="num">3</span>Critical &amp; High Findings</h2><div class="rule"></div>
+
+<p>No Critical findings. Two High.</p>
+
+<div class="finding high" id="f-h1">
+  <div class="head">
+    <span class="fid">H1</span>
+    <h3>The same write reaches disk through three entry points; only one is guarded</h3>
+    <span class="badges"><span class="b high">High</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> Saving the open note happens from three places. One follows the
+    project's error convention; two bypass it, so an ordinary, foreseeable disk failure is reported to
+    the user as an unexpected crash.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/DialogGuard.cs:5-18</code> — the convention itself: <em>&quot;This one is for
+          the failures a command expects; that one is for the bugs it does not. If a message arrives
+          looking like the second, a guard is missing rather than the failure being unusual.&quot;</em></li>
+      <li><code>ViewModels/MainViewModel.cs:136</code> — <code>Ctrl+S</code>:
+          <code>_dialogs.Guard(Editor.Save)</code>. Correct.</li>
+      <li><code>ViewModels/EditorViewModel.cs:83</code> — the autosave timer:
+          <code>_saveTimer.Tick += (_, _) =&gt; { _saveTimer.Stop(); Save(); };</code> — bare.</li>
+      <li><code>Views/MainWindow.axaml.cs:80</code> — leaving the app:
+          <code>if (DataContext is MainViewModel vm) vm.Editor.SaveImplicitly();</code> — bare.</li>
+      <li>Contrast <code>ViewModels/VaultWorkspaceViewModel.cs:114-115</code>, where both timer ticks
+          <em>are</em> wrapped: <code>_ = _dialogs.GuardAsync(RefreshTreeAsync)</code>.</li>
+      <li><code>MdNotes.Tests/ErrorFunnelTests.cs</code> asserts the two messages must not sound alike,
+          but no test drives either unguarded path.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>A note on a read-only file, a full disk, a file locked by a sync client — all ordinary — produce
+    <em>&quot;Something went wrong that MdNotes did not expect… it may no longer be in a reliable state&quot;</em>
+    while typing. That is alarming out of proportion to the cause, and it degrades the one diagnostic
+    the project built on purpose: once the crash message appears for routine failures, it stops meaning
+    &quot;a guard is missing here&quot;. <code>MainWindow.OnDeactivated</code> is the worse of the two —
+    it fires on every alt-tab, so a persistently unwritable note produces the dialog repeatedly.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Route both sites through the same funnel the keyboard command uses, so that
+    &quot;every write the user did not explicitly ask for&quot; has one error policy rather than two.
+    A test in the shape of <code>ErrorFunnelTests</code> — make the vault write throw, drive the timer,
+    assert the message does <em>not</em> contain &quot;did not expect&quot; — would keep it closed, and
+    would catch the next entry point added.</p></div>
+  </div>
+</div>
+
+<div class="finding high" id="f-h2">
+  <div class="head">
+    <span class="fid">H2</span>
+    <h3>A corrupt <code>settings.json</code> stops the app from starting, before anything can report it</h3>
+    <span class="badges"><span class="b high">High</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <p><strong>Finding.</strong> The settings file is read with no error handling at all, from a field
+    initialiser that runs before the crash barrier and before any window exists.</p>
+
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/JsonSettingsService.cs:31-33</code> —
+          <code>_data = File.Exists(_file) ? JsonSerializer.Deserialize&lt;Data&gt;(File.ReadAllText(_file)) ?? new Data() : new Data();</code>
+          The <code>?? new Data()</code> covers only a literal <code>null</code> document; malformed JSON
+          throws <code>JsonException</code>, and an unreadable file throws <code>IOException</code>.</li>
+      <li><code>AppSession.cs:17</code> — <code>private readonly ISettingsService _settings = new JsonSettingsService();</code>,
+          a field initialiser, so it runs inside the <code>AppSession</code> constructor called at
+          <code>App.axaml.cs:44</code>.</li>
+      <li><code>App.axaml.cs:38-42</code> — the crash barrier is installed at <code>:38</code>, but it
+          only catches exceptions dispatched to the UI thread's loop; a throw from the constructor at
+          <code>:44</code> propagates out of <code>StartDesktop</code>.</li>
+      <li><code>Services/JsonSettingsService.cs:135</code> — the write path
+          (<code>File.WriteAllText</code>) is equally unprotected, and is reached from property setters
+          that callers treat as infallible.</li>
+      <li>The file is explicitly designed to be hand-edited — <code>Models/AutoSave.cs:19</code>
+          (<em>&quot;settings.json is hand-editable, so the value is clamped&quot;</em>) and
+          <code>Models/NoteTemplate.cs:56-57</code> both defend against it. The read does not.</li>
+      <li>No <code>JsonSettingsServiceTests.cs</code> exists; it is the only service without one.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>The failure mode is the worst available: the app will not start, and says nothing useful about
+    why. A half-written file after a power cut, a sync conflict marker, or a hand edit with a trailing
+    comma each brick the application, and the recovery (delete a JSON file in <code>%APPDATA%</code>) is
+    not discoverable. Every other file this app reads — the exclusion list, the template, a note's title
+    during a walk — already treats &quot;will not read&quot; as a recoverable state with a documented
+    fallback. Settings is the exception, and it is the one read that happens before there is any way to
+    tell the user.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Treat an unreadable settings file the way <code>IgnoreFile</code> treats an
+    unreadable exclusion list: fall back to defaults and carry on. Preserving the unreadable file rather
+    than overwriting it on the next setter would matter here, since it holds the last vault path and the
+    caret positions. Whatever the recovery, this is also the natural place for the missing test file —
+    round-trip, defaults, and a deliberately corrupt document.</p></div>
+  </div>
+</div>
+
+<h2 id="s4"><span class="num">4</span>Medium &amp; Low Findings</h2><div class="rule"></div>
+
+<h3>Medium</h3>
+
+<div class="finding med" id="f-m1">
+  <div class="head">
+    <span class="fid">M1</span>
+    <h3><code>".md"</code> is declared in four places under a comment claiming one</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/VaultWalk.cs:17-18</code> — <em>"What counts as a note. The one place that
+          decides."</em> <code>public const string Extension = ".md";</code></li>
+      <li><code>Models/NoteTemplate.cs:12</code> — <code>public const string Extension = ".md";</code></li>
+      <li><code>Services/WindowsFileAssociationService.cs:17</code> — <code>private const string Extension = ".md";</code></li>
+      <li><code>ViewModels/EditorViewModel.cs:204,207</code> — the literal <code>".md"</code>, then
+          <code>relativePath[..^3]</code>: a hardcoded 3 that silently depends on the literal two lines
+          above it.</li>
+      <li>And the rule built on it, written twice against two different constants:
+          <code>Services/VaultService.cs:481-484</code> (<code>EnsureExtension</code>, via
+          <code>VaultWalk.Extension</code>) and <code>Models/NoteTemplate.cs:71</code> (via
+          <code>NoteTemplate.Extension</code>) — same comparison, same behaviour, no shared helper.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Supporting a second note extension — the obvious next request for a Markdown app — currently means
+    finding four declarations, two append helpers and one magic <code>3</code>, with no compiler help and
+    a comment actively telling the reader to stop looking after the first. The <code>[..^3]</code> is the
+    one that would fail silently rather than loudly.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Make <code>VaultWalk.Extension</code> true to its comment, or move the comment.
+    The breadcrumb should ask for the name without its extension rather than slicing a count off the
+    end.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m2">
+  <div class="head">
+    <span class="fid">M2</span>
+    <h3>Four bounded caches, four eviction policies — and the lesson learned in one was not carried to the others</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/NoteContentCache.cs:17-21</code> documents, with measurements, that picking the
+          LRU victim by scanning the map made a full-vault scan quadratic — <em>"1,196 ms against 154 ms
+          … eight times the work for two and a half times the notes"</em> — and uses an O(1) linked list
+          (<code>:44,109,116</code>).</li>
+      <li><code>Views/Markdown/Lru.cs:25</code> — victim chosen with <code>MinBy</code> over all entries.</li>
+      <li><code>Models/NotePositions.cs:42</code> — the same <code>MinBy</code> scan.</li>
+      <li><code>Views/Markdown/ImageCache.cs:36-41</code> — a fourth policy, generation-based rather than
+          LRU, with a documented reason: a bitmap the visual tree still holds must not be disposed under
+          it.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>This is <em>not</em> a live performance problem — the capacities are 64, 32 and 200, so the scan is
+    trivially bounded, and this report does not claim otherwise. The cost is comprehension: a reader
+    asking "how does this codebase bound a cache?" gets four answers, and the one place that wrote down
+    hard-won reasoning is the one place that reasoning was applied. If <code>Lru</code>'s capacity is ever
+    raised for a document-heavy vault, the same quadratic is waiting there.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p><code>ImageCache</code> solves a different problem and should stay as it is. Of
+    the three true LRUs, <code>Lru&lt;TKey,TValue&gt;</code> is already the generic one — the question is
+    whether the other two can share its recency mechanism, or should at least cite it. Note the trade-off
+    the brief warns about: the three differ in value type, disposal and locking, so a forced merge could
+    easily cost more than the duplication does.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m3">
+  <div class="head">
+    <span class="fid">M3</span>
+    <h3>Undo skips the safety check that Replace performs</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/ReplaceService.cs:58-63</code> — before writing, re-reads the note and calls
+          <code>StillMatches</code>; a note whose text changed since the preview is skipped and named in
+          <code>ReplaceReport.Skipped</code>, which the overlay reports
+          (<code>SearchReplaceViewModel.cs:225-228</code>).</li>
+      <li><code>Services/ReplaceService.cs:74-78</code> — <code>Restore</code> loops the snapshot and
+          writes unconditionally. No re-read, no comparison, no report.</li>
+      <li><code>Models/ReplaceReport.cs:3-7</code> documents the <code>Skipped</code> contract for the
+          forward direction only.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Two halves of one feature enforce opposite rules and nothing says why. A reader who has just
+    understood <code>Replace</code>'s careful stance on concurrent edits will reasonably assume
+    <code>Restore</code> shares it. Either the asymmetry is intentional — undo deliberately puts the text
+    back regardless — in which case a sentence would settle it permanently, or it is an oversight. As
+    written, the code does not let a reader tell those two apart.</p>
+    <p><em>Scope note:</em> the data-loss consequences belong to the separate Data Safety Review. The
+    implementation-quality point here is only the unexplained divergence between a rule and its mirror.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Decide which it is and write it down at <code>Restore</code>. If undo should also
+    be conservative, the mechanism it needs is ten lines away.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m4">
+  <div class="head">
+    <span class="fid">M4</span>
+    <h3>The quick switcher rescans and re-folds the whole vault on every keystroke, unlike the other two as-you-type scans</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:78-81</code> — <code>OnQueryChanged</code> calls
+          <code>RefreshResults()</code> directly. No timer, no thread pool, no cancellation.</li>
+      <li><code>:83-124</code> — each call flattens the whole tree into a fresh list
+          (<code>:88-89</code>), then ranks every note (<code>:104-111</code>).</li>
+      <li><code>Services/NameMatch.cs:32-33</code> — <code>Rank</code> folds <em>both</em> the candidate
+          and the query on every call, and <code>QuickSwitcherViewModel.cs:105</code> calls it twice per
+          note. Over 5 000 notes that is roughly ten thousand folds of the query string per keystroke, on
+          the UI thread.</li>
+      <li>Compare the two features that solved this: <code>VaultWorkspaceViewModel.cs:44,451-504</code>
+          (250 ms debounce, thread pool, cancellation, with measurements at <code>:469-474</code>) and
+          <code>SearchReplaceViewModel.cs:21,109-156</code> (the same three mechanisms).</li>
+      <li><code>:94</code> and <code>:110</code> — the <code>Take(50)</code> cap written once per branch.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Three features do "scan the vault as the user types". Two carry a written record of why that must
+    be debounced, pooled and cancellable; the third does none of it. The tree walk itself is cached, so
+    this is cheaper than the other two were — but it is the one still running on the UI thread, and its
+    per-keystroke cost grows fastest with vault size. Someone adding a fourth such feature has two good
+    examples and one counter-example, with nothing marking which is which.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Two independent improvements. Hoist the folded query out of the per-candidate
+    loop — <code>NameMatch</code> could take a prepared query rather than re-folding it per comparison.
+    And bring the switcher onto the same debounce-and-cancel shape as its two siblings. The second
+    matters more for consistency; the first matters more for cost.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m5">
+  <div class="head">
+    <span class="fid">M5</span>
+    <h3>Two different mechanisms size the columns of one window</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/MainViewModel.cs:46-47</code> — the editor and preview columns are exposed as
+          bound <code>GridLength</code> properties, consumed at
+          <code>Views/MainWindow.axaml:46,48</code>.</li>
+      <li><code>Views/MainWindow.axaml.cs:54-75</code> — the sidebar column is mutated imperatively via
+          <code>Shell.ColumnDefinitions[1]</code>, driven by a hand-written <code>PropertyChanged</code>
+          subscription at <code>:28-52</code>.</li>
+      <li>The index <code>[1]</code> silently depends on <code>Views/MainWindow.axaml:27</code> —
+          <code>ColumnDefinitions="Auto,260,1,*"</code>. Inserting a column ahead of the sidebar compiles
+          and then resizes the wrong one.</li>
+      <li>The 260 default is stated three times: the XAML above, plus
+          <code>MainWindow.axaml.cs:9</code> and <code>:61</code>.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>One window, one question — how wide is this column — answered two ways, one compile-checked and
+    one a positional index into markup. The imperative path also carries subscribe/unsubscribe
+    bookkeeping (<code>:32-43</code>) that the bound path gets for free. A reader changing the shell
+    layout has to already know the code-behind exists in order not to break it.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The sidebar has a real extra requirement the other columns do not: it remembers a
+    user-dragged width across hide and show. So this is not simply "bind it like the others". But a
+    remembered width is state, and state belongs beside the other view state in the view model; what the
+    view needs back from it is a <code>GridLength</code>, exactly as for the other two columns. Short of
+    that, referring to the column by <code>x:Name</code> instead of index removes the silent breakage.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m6">
+  <div class="head">
+    <span class="fid">M6</span>
+    <h3>Three filesystem error policies among four modules at the same boundary</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><strong>Swallow, documented.</strong> <code>Services/IgnoreFile.cs:5-6</code> — <em>"Nothing
+          here throws - a list that will not read means 'nothing is excluded', never a broken vault."</em>
+          Enforced at <code>:32</code>, <code>:59</code>, <code>:73</code> through a shared
+          <code>IsExpected</code> filter (<code>:79-80</code>).</li>
+      <li><strong>Swallow, documented, narrower.</strong> <code>Services/VaultWalk.cs:91-102</code> —
+          catches <code>IOException</code> and <code>UnauthorizedAccessException</code> so a locked note
+          falls back to its file name; explained at <code>:82-86</code>.</li>
+      <li><strong>Propagate, undocumented.</strong> <code>Services/FolderOrderFile.cs:34-55</code> —
+          <code>Save</code>, <code>Delete</code> and <code>Rename</code> let every IO failure out,
+          including from inside <code>VaultService.MoveTo</code>
+          (<code>Services/VaultService.cs:294,300-304</code>), <em>after</em> the file has already moved
+          on disk.</li>
+      <li><strong>Propagate, by design.</strong> <code>Services/NoteContentCache.cs:63,76</code> —
+          documented at <code>:56-59</code> as deliberately handing the caller the failure it has always
+          had.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Three of the four state their policy; <code>FolderOrderFile</code> does not, and it is the one
+    whose failure lands mid-mutation. A drag-and-drop where the move succeeds but the order file cannot
+    be written raises an error dialog for an operation that visibly happened. The <code>finally</code> at
+    <code>VaultService.cs:306</code> correctly invalidates, so the tree ends up right — the user is
+    simply told something failed. Anyone adding a fifth file-touching module has no rule to follow beyond
+    reading all four.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>One sentence somewhere central saying when a filesystem module swallows and when
+    it propagates — the two existing comments nearly say it already — and the same sentence on
+    <code>FolderOrderFile</code>. Whether losing manual order is worth failing a completed move is a
+    product question, but it should be a decided one.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m7">
+  <div class="head">
+    <span class="fid">M7</span>
+    <h3>The app's only containment check keeps its preconditions in the callers, and eight of ten do not meet them</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/PathScope.cs:7-9</code> — a case-insensitive equality plus a
+          <code>StartsWith(ancestor + Path.DirectorySeparatorChar)</code> prefix test. No normalisation,
+          no trailing-separator handling, no <code>AltDirectorySeparatorChar</code>.</li>
+      <li><strong>Meets the preconditions (2):</strong> <code>Services/NoteImagePath.cs:16,19-20</code>
+          — resolves to a full path <em>and</em> trims a trailing separator from the scope;
+          <code>Services/NoteTemplateService.cs:44-45</code> — resolves to a full path only.</li>
+      <li><strong>Passes paths raw (8):</strong> <code>ViewModels/EditorViewModel.cs:49</code>,
+          <code>ViewModels/VaultWorkspaceViewModel.cs:247,262,380,414,622</code>,
+          <code>Services/VaultService.cs:272</code>, <code>Services/ReplaceService.cs:28</code>.</li>
+      <li>The reason for normalising is a near-verbatim <em>duplicated doc comment</em> —
+          <code>NoteImagePath.cs:4-6</code> and <code>NoteTemplateService.cs:35-38</code> — copied onto a
+          caller that implements only half of what it describes.</li>
+      <li>The trailing-separator rule appears once, as a comment at <code>NoteImagePath.cs:18</code>:
+          <em>"PathScope appends the separator itself, so the scope must not already end in one."</em></li>
+      <li>The repository's own structure index records this helper as <em>"the only mechanism keeping
+          file operations inside the vault root."</em></li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Three distinct consequences, in order of how likely they are to be met. First, comprehension: the
+    contract of the most safety-relevant function in the codebase is written in two of its callers, so a
+    ninth caller has to find the right one to copy. Second, a vault opened at a filesystem or drive root
+    (<code>/</code>, <code>C:\</code>) already ends in a separator, so <code>ancestor + separator</code>
+    is a doubled one and containment fails — every note in such a vault is treated as a loose file and
+    stops autosaving. Third, only the directory separator is tested, so a legal <code>/</code>-separated
+    path on Windows fails containment even though <code>NoteImagePath.cs:20</code> trims both.</p>
+    <p>The eight raw callers are safe today, because tree paths descend from a <code>RootPath</code>
+    normalised at <code>VaultService.cs:50</code> and the command-line path is normalised at
+    <code>VaultWorkspaceViewModel.cs:167</code>. That is an invariant the code relies on and does not
+    state.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Move the preconditions inside the helper, so the two comments describing them
+    become one implementation and the other eight callers become correct by construction rather than by
+    luck. This is the single highest-value consolidation in the report: it is one small function, it has
+    tests already (<code>NoteImagePathTests</code>), and it is the place where getting it wrong matters
+    most.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m8">
+  <div class="head">
+    <span class="fid">M8</span>
+    <h3>Name validation is platform-dependent, and the suite is permanently red on Linux because of it</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/VaultService.cs:471-479</code> — <code>ValidateName</code> rejects
+          <code>Path.GetInvalidFileNameChars()</code>, which returns a different set per OS.</li>
+      <li>Baseline run on this machine:
+<pre><code>Failed MdNotes.Tests.VaultServiceTests.CreateNote_rejects_blank_or_invalid_names(name: "a:b")
+  Assert.Throws() Failure: No exception was thrown
+  Expected: typeof(System.ArgumentException)
+
+Failed MdNotes.Tests.VaultServiceTests.CreateNote_appends_extension_and_rejects_duplicates
+  Assert.Throws() Failure: No exception was thrown
+  Expected: typeof(System.IO.IOException)
+
+Failed!  - Failed: 2, Passed: 467, Skipped: 3, Total: 472, Duration: 18 s</code></pre></li>
+      <li>The second failure has the same root: the duplicate it expects to collide with was created
+          under a name Linux accepts and Windows would not.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Two costs, and the second is the larger. The behavioural one: MdNotes is explicitly
+    cross-platform and its vaults are explicitly expected to be synced (the whole auto-save mode feature
+    exists because a vault may be a git repo or a synced folder), so a note named <code>a:b.md</code>
+    created on Linux is a note that cannot exist on the user's Windows machine. The maintainability one:
+    the suite does not pass on a supported development platform, which trains everyone working here to
+    read "2 failed" as normal. The next real regression arrives into a report that already says
+    <code>Failed!</code>.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Two separable decisions. Whether validation should be the strictest of the
+    supported platforms rather than the host's is a product call about portable vaults. Independently of
+    that, the two tests should encode whatever the answer is, so that a green run means green — a
+    platform-conditional expectation would at least be honest about the current behaviour.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m9">
+  <div class="head">
+    <span class="fid">M9</span>
+    <h3>The single-instance listener can die silently, or spin</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/SingleInstance.cs:51</code> — <code>public void Listen() =&gt; _ = Task.Run(ListenLoopAsync);</code>
+          Fire-and-forget, with no continuation and nothing that ever observes the task.</li>
+      <li><code>:53-76</code> — the loop handles exactly two exception types:
+          <code>OperationCanceledException</code> (<code>:67</code>, returns) and
+          <code>IOException</code> (<code>:71</code>).</li>
+      <li><code>:71-74</code> — the <code>IOException</code> handler is an <strong>empty body inside the
+          unbounded <code>while</code></strong>, with only a comment.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Two failure shapes, both invisible. Anything outside those two types faults the task unobserved,
+    after which every subsequent double-click in the file manager launches a second copy of MdNotes
+    instead of a new window — a feature silently gone for the rest of the session, with no error and
+    nothing in a log (there is no log; see <a href="#f-l14">L14</a>). And a <em>persistent</em>
+    <code>IOException</code> — a pipe name that cannot be bound, say — turns the loop into a busy spin on
+    a background thread, since the handler neither backs off nor gives up.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The empty catch needs either a bound on consecutive failures or a delay before
+    retry, so "drop it and take the next one" cannot become "take the next one ten thousand times a
+    second". Separately, a fire-and-forget loop that is a feature rather than a best-effort side task
+    deserves a fault path — even just surfacing through the same crash barrier everything else uses.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m10">
+  <div class="head">
+    <span class="fid">M10</span>
+    <h3>The same exclusion test is written twice inside one file</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/VaultService.cs:452-458</code> — <code>IsExcluded</code>: take the relative key,
+          reject anything starting <code>".."</code>, ask the ignore list.</li>
+      <li><code>Services/VaultService.cs:514-518</code> — <code>IsHidden</code>, a local function inside
+          <code>IsQuiet</code>: the same two-clause rule, with <code>RelativeKey</code>
+          (<code>:432-433</code>) inlined verbatim rather than called.</li>
+      <li>The one difference that <em>is</em> deliberate — <code>CachedIgnore()</code> rather than
+          <code>CurrentIgnore()</code>, because this runs on a watcher thread — is documented at
+          <code>:361</code>. The inlining is not.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>How a vault-relative key is formed is a rule with real consequences — it decides what the
+    exclusion list matches — and it now has two implementations sixty lines apart in one file. A change
+    to separator handling or to the <code>".."</code> escape test has to find both, and the second is
+    inside a local function inside a private method, which is where a reader looks last.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>One predicate taking the ignore instance as a parameter, called with
+    <code>CurrentIgnore()</code> from one site and <code>CachedIgnore()</code> from the other. That keeps
+    the difference that matters and removes the one that does not — and makes the documented reason at
+    <code>:361</code> visible at both call sites.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m11">
+  <div class="head">
+    <span class="fid">M11</span>
+    <h3>Three tree flatteners build the same folder label three ways</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/VaultWalk.cs:109-129</code> — <code>Flatten</code>, producing notes, folders and
+          display names.</li>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:129-143</code> — <code>FlattenNotes</code>, with its
+          own label builder at <code>:135</code>.</li>
+      <li><code>ViewModels/SearchReplaceViewModel.cs:321-330</code> — <code>Flatten</code>, with its own
+          label builder at <code>:325</code>. The last two are the same expression under different
+          variable names.</li>
+      <li>For contrast, the walk itself is genuinely single-sourced:
+          <code>Services/VaultWalk.cs:46,51</code> are the only calls to
+          <code>Directory.Enumerate*</code> in the whole codebase — a consolidation the file's own
+          comment at <code>:11-13</code> records, having previously been three walks that disagreed about
+          <code>.git</code>.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Modest on its own: three small recursions over a cached in-memory tree. It is listed because it is
+    the same shape as the bug <code>VaultWalk</code>'s comment describes — three traversals that agreed
+    until one of them changed — one level up. The label format is now user-visible in two different
+    panels, so a change to how nested folders are displayed has two places to reach and no test tying
+    them together.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>A single enumerator yielding each note with its relative label would serve both
+    view models. Worth doing when one of them next changes, not as a standalone refactor — the two are
+    small enough that merging them purely to remove repeated syntax would not pay.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m12">
+  <div class="head">
+    <span class="fid">M12</span>
+    <h3>The two vault-wide searches answer "does this name match" differently, and one seeds the other</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/SearchService.cs:32-34</code> — sidebar search falls back to a raw folded
+          <code>Contains</code> over the display name and the file name.</li>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:105</code> — the switcher asks the same question of
+          the same two strings, but through <code>NameMatch.Rank</code>, whose whole purpose
+          (<code>Services/NameMatch.cs:17-24</code>) is that exact beats prefix beats folded.</li>
+      <li><code>Services/MatchFinder.cs:37-39</code> and <code>Services/SearchService.cs:26-28</code>
+          carry the same fold-then-index body under the same duplicated comment — but
+          <code>SearchService</code> always folds and has no case option at all, while
+          <code>MatchFinder</code> folds only when <code>MatchCase</code> is off.</li>
+      <li><code>ViewModels/VaultWorkspaceViewModel.cs:334</code> — opening the replace overlay seeds it
+          from the sidebar search box, so the two rule sets meet on the same query string.</li>
+      <li>Two context-snippet helpers differ in both radius and ellipsis:
+          <code>MatchFinder.cs:13,140-144</code> (60 chars, <code>…</code>) and
+          <code>SearchService.cs:7,40-46</code> (40 chars, <code>...</code>).</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Most of this divergence is defensible — a sidebar filter and a regex-capable replace tool
+    reasonably differ. What makes it worth reporting is the seam at <code>:334</code>: the user types a
+    query in one box, sees a hit count, opens replace with that same text pre-filled, and can get a
+    different set. Nothing in the code or the UI marks that boundary. The <code>NameMatch</code> class
+    was extracted precisely because two name-matching copies had drifted; <code>SearchService</code> is a
+    third copy that was not brought in.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Route <code>SearchService</code>'s name fallback through <code>NameMatch</code>,
+    so "does this name match" has one answer as its own doc comment intends. Whether the two snippet
+    widths should converge is cosmetic; whether the two ellipsis characters should is not really a
+    question.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m13">
+  <div class="head">
+    <span class="fid">M13</span>
+    <h3>Three copies of one debounce interval, under a comment asserting they are one decision</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/VaultWorkspaceViewModel.cs:42-43</code> — <em>"250 ms, the interval the other
+          two keystroke-driven timers use (the editor preview and the replace overlay's rescan). The
+          300 ms above is watcher-driven, which is a different question."</em></li>
+      <li>The three independent literals: <code>VaultWorkspaceViewModel.cs:44</code>,
+          <code>ViewModels/EditorViewModel.cs:15</code>, <code>ViewModels/SearchReplaceViewModel.cs:21</code>.</li>
+      <li>The 300 ms watcher timer at <code>:40</code> is correctly identified as a separate concern.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>The comment is careful, correct today, and load-bearing: it is the only record that these three
+    numbers are one decision rather than three coincidences. Nothing makes them move together, so the
+    first time someone tunes one, the comment becomes a false statement that the next reader will trust.
+    A comment that asserts a coupling the code does not enforce is worse than no comment, because it
+    stops the reader from checking.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>One named constant for "the keystroke debounce", referenced by all three. The
+    comment then describes something real, and the 300 ms watcher interval stays separate as it should.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m14">
+  <div class="head">
+    <span class="fid">M14</span>
+    <h3>A three-valued return is flattened to two at its only consumer</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/IgnoreFile.cs:13-16</code> states the contract explicitly: <em>"the list as
+          written; "" when there is no file, null when there is one but it will not read."</em></li>
+      <li><code>Services/VaultIgnoreService.cs:16</code> — <code>IgnoreFile.Read(root) ?? string.Empty</code>.
+          The two states collapse into one at the only place that consumes them.</li>
+      <li>The distinction is recovered by a <em>second, separate</em> read in <code>Probe()</code>
+          (<code>:48</code>), which is what lets the settings panel say <em>"That list cannot be read -
+          nothing is excluded"</em> (<code>ViewModels/SettingsViewModel.cs:118</code>).</li>
+      <li><code>Services/IgnoreFile.cs:32-35</code> — the write path has an <strong>empty catch</strong>,
+          so a failed save of the exclusion list produces no signal at the moment of saving.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>The safeguard works — the status line does tell the truth — but it works by reading the same file
+    twice through two different paths and relying on them agreeing. The text box and the line of text
+    directly beneath it derive from separate reads; between them the file can change. Meanwhile the
+    empty catch on <code>Write</code> means the panel's own feedback after a failed save is whatever the
+    <em>next</em> read happens to return, which is the old content — indistinguishable from a save that
+    silently did nothing.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The three-valued result is the right model; the fix is to carry it to the panel
+    rather than flatten and re-derive it. One read answering both "what does it say" and "could it be
+    read" would remove the double-read entirely. The empty catch at <code>:32</code> is the one place in
+    this module where "never throw" and "never tell anyone" have been conflated.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-m15">
+  <div class="head">
+    <span class="fid">M15</span>
+    <h3>Two <code>async void</code> handlers do unguarded work</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Views/Shell/Sidebar.axaml.cs:62-80</code> — <code>OnTreePointerMoved</code> awaits
+          <code>DragDrop.DoDragDropAsync</code> at <code>:78</code> with no try/catch anywhere in the
+          method.</li>
+      <li><code>Views/MainWindow.axaml.cs:87-100</code> — <code>OnClosing</code>'s await <em>is</em>
+          guarded (<code>:92</code>, via <code>TryAsync</code>), but the three statements that follow it
+          are not: <code>Vm.Dispose()</code> (<code>:95</code>), <code>Preview.Dispose()</code>
+          (<code>:98</code>) and <code>Close()</code> (<code>:99</code>).</li>
+      <li>Both rely on the crash barrier at <code>App.axaml.cs:38</code>, which by design reports the
+          failure as unexpected.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Same shape as <a href="#f-h1">H1</a>, lower stakes. An exception from either lands in the crash
+    barrier and tells the user the app may no longer be in a reliable state — during a drag, or while
+    closing a window they asked to close, where the honest answer is usually "that did not work, nothing
+    was lost". The closing path is the more awkward: the barrier fires after the save has already
+    succeeded, so the message contradicts what actually happened.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Both are small enough to bring under the existing guard. The teardown sequence in
+    <code>OnClosing</code> in particular should not be able to leave a window un-closed because a cache
+    failed to dispose.</p></div>
+  </div>
+</div>
+
+<h3>Low</h3>
+
+<p>Each of these is small. They are reported because every one is a place where two readings of the
+same question can quietly diverge, and because several share the shape identified in the summary — a
+comment or a name asserting something the code does not enforce.</p>
+
+<div class="finding low" id="f-l1">
+  <div class="head">
+    <span class="fid">L1</span>
+    <h3>Four files carry a visibly different idiom from the code around them</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Views/MainWindow.axaml.cs:15,32,42,54-75</code> — <em>"Subscribe to search button once"</em>,
+          <em>"Unsubscribe from previous VM"</em>, <em>"Show sidebar: restore or use minimum width"</em>.</li>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:44-48,83-124</code> — <em>"Flatten the tree to
+          notes"</em>, <em>"If query is empty, list all notes sorted by name"</em>, <em>"If no matches and
+          query is non-empty, add a create item"</em>.</li>
+      <li><code>ViewModels/EditorViewModel.cs:200-218</code> — <em>"Remove .md extension"</em>,
+          <em>"Replace directory separators with ' / '"</em>.</li>
+      <li><code>Views/Markdown/BlockRenderer.cs:64-115</code> — <em>"Regular items have a marker in
+          column 0"</em>, <em>"Content in column 1"</em>, plus an <code>IsTaskListItem</code> written as
+          nested <code>if</code>/<code>return</code> in a file that is otherwise entirely expression-bodied
+          and pattern-matched.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>This is deliberately <em>not</em> a style complaint — brace placement and line length are not in
+    scope. The point is informational: everywhere else in this codebase a comment tells the reader
+    something the code cannot, so comments are worth stopping for. In these four regions they restate the
+    line beneath them, so a reader who has learned to trust the comments spends attention on nothing.
+    These same four regions are also where several of the fragile constructs in this report live
+    (<a href="#f-m1">M1</a>, <a href="#f-m4">M4</a>, <a href="#f-m5">M5</a>, <a href="#f-l2">L2</a>),
+    which is the correlation worth noticing.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Nothing needs rewriting for its own sake. But these are the regions to read
+    carefully when touching them, rather than the ones to skim.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l2">
+  <div class="head">
+    <span class="fid">L2</span>
+    <h3>One concept encoded as a nullable field plus a flag, then forced with <code>!</code></h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:25</code> — <code>SwitcherItem</code> carries
+          <code>string? FullPath</code> and <code>bool IsCreate</code>, which are two encodings of one
+          either-or: a row is an existing note or it is the "create this" row.</li>
+      <li><code>:63-73</code> — the consequence:
+          <code>if (Selected.IsCreate) … else _openPath(Selected.FullPath!)</code>. The
+          <code>!</code> is the compiler being told to trust a correlation it cannot see.</li>
+      <li><code>:25</code> also uses <code>string FileName = ""</code> as a third optional-by-convention
+          field, where empty means "not supplied".</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Nothing stops a <code>SwitcherItem</code> being constructed with <code>IsCreate: false</code> and a
+    null path; the only thing preventing it is that one factory (<code>:140</code>) happens to be
+    correct. The <code>!</code> converts what would be a compile error into a runtime
+    <code>NullReferenceException</code>, in a code path reached by pressing Enter.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The two states are genuinely disjoint, and C# has shapes that say so — the
+    generated pattern-matching over a small closed hierarchy would remove both the flag and the
+    <code>!</code>. Worth doing only if the switcher is being touched anyway; it is one call site.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l3">
+  <div class="head">
+    <span class="fid">L3</span>
+    <h3>A cluster of near-duplicate helpers</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Two pluralisers, both named <code>Count</code>, with different signatures:
+          <code>ViewModels/SearchReplaceViewModel.cs:332</code> (takes an explicit plural, so
+          "match/matches" works) and <code>ViewModels/SettingsViewModel.cs:128</code> (appends
+          <code>s</code>).</li>
+      <li>The same four-type exception filter as a named predicate in
+          <code>Services/IgnoreFile.cs:79-80</code> and inline in
+          <code>Services/NoteTemplateService.cs:64-65</code>.</li>
+      <li>The same "is this a path or a bare name" predicate at <code>Services/VaultService.cs:155</code>
+          and <code>ViewModels/VaultWorkspaceViewModel.cs:293</code> — evaluated twice for the same
+          wikilink target on the same click.</li>
+      <li><code>VaultWorkspaceViewModel.TargetFolder</code> (<code>:634-639</code>) and
+          <code>ParentFolder</code> (<code>:646</code>), both a directory-name lookup falling back to the
+          root, differing only in a folder special case.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Individually trivial, and the brief is right that a little duplication beats a poor abstraction —
+    none of these justifies a shared helper on its own. They are listed together because each is a place
+    a rule could drift: the two pluralisers already disagree about irregular plurals, and the duplicated
+    exception filter is the one that would matter, since it defines which filesystem failures are
+    "expected".</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Only the exception filter is worth promoting — it encodes a policy
+    (<a href="#f-m6">M6</a>) rather than a convenience. Leave the rest.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l4">
+  <div class="head">
+    <span class="fid">L4</span>
+    <h3>A pure forwarding layer on <code>MainViewModel</code></h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/MainViewModel.cs:119,122,125</code> — <code>TryRestoreVault</code>,
+          <code>OpenLooseFile</code> and <code>TryOpenInitialVaultAsync</code>, each a one-line forward to
+          the identically-named member on <code>Workspace</code>, each carrying a copy of that member's
+          doc comment.</li>
+      <li>The only caller of all three is <code>AppSession.OpenSubjectAsync</code>
+          (<code>AppSession.cs:74,80,87</code>), which already holds the <code>MainViewModel</code> and
+          could reach <code>Workspace</code> directly.</li>
+      <li>For contrast, <code>Services/VaultService.cs:118</code> —
+          <code>RefreshExclusions() =&gt; Refresh()</code> — is also a pure alias but has a stated reason
+          at <code>:114-117</code> (it means something different at its call site). That one is
+          defensible.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Three duplicated doc comments that must be kept in step with the originals, and one more hop for a
+    reader tracing how a file on the command line reaches the editor. Small, but it is the kind of layer
+    that accretes.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The composition root can call through <code>Workspace</code>. If the forwards are
+    kept as a deliberate facade, the doc comments should point at the originals rather than restate them.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l5">
+  <div class="head">
+    <span class="fid">L5</span>
+    <h3><code>SaveNotePositions</code> raises <code>PropertyChanged</code> for a property that does not exist</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/JsonSettingsService.cs:41-45</code> — <code>SaveNotePositions</code> calls
+          <code>Write()</code> with no argument.</li>
+      <li><code>:133-137</code> — <code>Write</code> takes the property name from
+          <code>[CallerMemberName]</code>, so the event is raised with
+          <code>"SaveNotePositions"</code>, a method.</li>
+      <li>The comment at <code>:131-132</code> — <em>"The caller name is the property, so every setter is
+          one call and none of them can name the wrong one"</em> — is true of the eight setters and not
+          of this ninth caller.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Harmless today: both subscribers (<code>AppSession.cs:46</code>,
+    <code>MainViewModel.cs:89</code>) compare against real property names and ignore it. But it fires on
+    every note switch, it makes the notification contract untrue, and it is a trap for anyone who later
+    subscribes with a <code>switch</code> that has a default branch. The neat <code>CallerMemberName</code>
+    trick is exactly what hides it.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Either name the property explicitly at this one call site, or have it not notify
+    at all — nothing observes the caret map.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l6">
+  <div class="head">
+    <span class="fid">L6</span>
+    <h3><code>SvgCssInliner</code> can recurse without bound, and rewrites the whole document per variable</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: Medium</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/SvgCssInliner.cs:35-39</code> — the resolution loop rebuilds the entire SVG
+          string on each substitution: quadratic in the number of <code>var()</code> references.</li>
+      <li><code>:91-97</code> — <code>Evaluate</code> recurses into a variable's own value with no depth
+          limit and no cycle detection, so <code>--a: var(--a)</code> recurses until the stack is gone.</li>
+      <li>Every other failure in this file is a <code>FormatException</code> (<code>:61,96,115,143</code>)
+          and is caught upstream at <code>Views/Markdown/BlockRenderer.cs:151</code>, which renders it in
+          place of the diagram. A <code>StackOverflowException</code> is not catchable and terminates the
+          process.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Low likelihood: the input is SVG produced by Mermaider, not by the user directly, so a
+    self-referential custom property would have to come from the renderer or a future theming path. But
+    the consequence is the one outcome the whole error design exists to prevent — <code>App.axaml.cs:33-37</code>
+    keeps the app alive on unexpected failures specifically so an unsaved buffer is not lost, and a stack
+    overflow bypasses that entirely.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>A recursion depth limit that throws <code>FormatException</code> like every other
+    malformed-input path in the file would bring this into the error handling that already exists. The
+    quadratic rebuild is not worth addressing on current inputs.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l7">
+  <div class="head">
+    <span class="fid">L7</span>
+    <h3>One case-sensitive path comparison among nine insensitive ones</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Services/VaultService.cs:46</code> — <code>if (Path.GetFullPath(rootPath) == RootPath) return false;</code>
+          Ordinal, case-sensitive.</li>
+      <li>Every other path equality in the service layer is case-insensitive:
+          <code>VaultService.cs:279,301,457</code>, <code>Services/NoteTemplateService.cs:53-55</code>,
+          <code>ViewModels/SearchReplaceViewModel.cs:317</code>,
+          <code>ViewModels/VaultWorkspaceViewModel.cs:644</code>, and <code>PathScope</code> itself.</li>
+      <li>The one other deliberate ordinal comparison, <code>ViewModels/TreeNodeViewModel.cs:99-101</code>,
+          is documented at length at <code>:91-98</code> explaining exactly why it is stricter than its
+          neighbour. <code>VaultService.cs:46</code> has no such note.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>On Windows, reopening the same vault under different casing is read as a different vault: both
+    watchers are torn down and rebuilt, the content cache is cleared (<code>:61</code>), and
+    <code>VaultOpened</code> fires (<code>:88</code>), which resets the tree, the search box and the undo
+    step in <em>every</em> open window (<code>VaultWorkspaceViewModel.cs:529-556</code>). The path can
+    come from the saved settings file, so the casing is not always under the user's control. The contrast
+    with <code>TreeNodeViewModel</code> is the tell: where an ordinal comparison is intended here, it is
+    explained.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Use the same comparison the rest of the class uses, or state why this one differs.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l8">
+  <div class="head">
+    <span class="fid">L8</span>
+    <h3>One ribbon button routes through an event and code-behind; the other seven bind commands</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>Views/Shell/Ribbon.axaml:63-68</code> — the Search button is the only one of eight with no
+          <code>Command</code>; it carries an <code>x:Name</code> instead.</li>
+      <li><code>Views/Shell/Ribbon.axaml.cs:7,12</code> — a C# <code>event Action? SearchButtonClicked</code>,
+          raised from a click handler.</li>
+      <li><code>Views/MainWindow.axaml.cs:16-23</code> — subscribed in the window constructor, never
+          unsubscribed; the handler sets <code>Vm.IsSidebarVisible</code> and then calls
+          <code>Sidebar.FocusSearchBox()</code> (<code>Views/Shell/Sidebar.axaml.cs:38</code>).</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>There is a genuine constraint underneath: "put keyboard focus in that text box" has no view-model
+    representation, and inventing one would be worse. But the result is that one of eight visually
+    identical buttons is wired through three files and a cross-control event, and a reader looking for
+    its command in the XAML finds nothing.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Leave the mechanism; the alternatives are worse. A one-line comment at the
+    <code>Ribbon.axaml</code> button saying why this one is different would cost nothing and is exactly
+    what the rest of this codebase would do.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l9">
+  <div class="head">
+    <span class="fid">L9</span>
+    <h3>One culture-sensitive sort among otherwise ordinal ordering</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/QuickSwitcherViewModel.cs:94</code> — <code>allNotes.OrderBy(n =&gt; n.Name)</code>,
+          using the default comparer, which is culture-sensitive.</li>
+      <li>The vault sorts ordinally and case-insensitively (<code>Services/VaultWalk.cs:48,52</code>), and
+          every keyed collection in the codebase uses an ordinal comparer
+          (<code>VaultWalk.cs:31</code>, <code>Models/VaultIgnore.cs:15-16</code>,
+          <code>Services/NoteContentCache.cs:41</code>, <code>Services/FolderOrderFile.cs:25,50</code>,
+          <code>Models/NotePositions.cs:19-20</code>, <code>Services/ReplaceService.cs:50</code>).</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>With an empty query the switcher lists notes in a different order from the sidebar showing the same
+    notes, and the difference depends on the user's locale — so it will not reproduce for everyone who
+    reports it. Swedish is the obvious case here: <code>ä</code> and <code>ö</code> sort after
+    <code>z</code> in <code>sv-SE</code> and among the <code>a</code>/<code>o</code> group in the ordinal
+    ordering the tree uses.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Match the vault's comparer, so the two lists agree. If culture-aware ordering is
+    wanted, it should be the vault's decision and apply to both.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l10">
+  <div class="head">
+    <span class="fid">L10</span>
+    <h3>Separator normalisation spelled two non-equivalent ways</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Backslash hardcoded: <code>Services/VaultService.cs:433</code>, <code>:516</code>,
+          <code>Models/NoteTemplate.cs:63</code>.</li>
+      <li>Platform separator: <code>Services/ReplaceService.cs:37</code>.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>On Linux these are not the same operation: the first rewrites a backslash that is a legal character
+    in a filename, the second does nothing. Neither is wrong where it stands — the vault keys genuinely
+    want <code>/</code> whatever the host, and the replace folder label genuinely wants the host separator
+    translated — but they read as the same idiom, so a reader comparing them concludes one of them is a
+    mistake.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The two intents are different enough to deserve different names. A shared
+    "vault-relative key" helper (which <a href="#f-m10">M10</a> also wants) would absorb three of the four.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l11">
+  <div class="head">
+    <span class="fid">L11</span>
+    <h3>"Title, else file name" is expressed three times under a comment claiming one</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Title <em>parsing</em> genuinely is single-sourced: <code>Models/NoteTitle.cs:21</code>, with
+          three callers.</li>
+      <li>The <em>fallback</em> is not. <code>Models/VaultEntry.cs:17</code> —
+          <code>Display =&gt; Title ?? Name</code>. <code>Services/VaultService.cs:134-137</code>, whose
+          doc at <code>:129-133</code> says <em>"The one place that answers it, so the sidebar, the
+          switcher, the search results and the window title cannot disagree"</em>. And
+          <code>ViewModels/EditorViewModel.cs:198</code>, which acknowledges the duplication in its own
+          comment at <code>:196-197</code>.</li>
+      <li>Consumers split between the two routes: <code>Services/SearchService.cs:24</code> and
+          <code>EditorViewModel.cs:198</code> call <code>DisplayName</code>;
+          <code>ViewModels/QuickSwitcherViewModel.cs:140</code> and
+          <code>ViewModels/TreeNodeViewModel.cs:53,60</code> read <code>Display</code> off the snapshot.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>All three agree today, and two of them are honest about it. The cost is that the comment naming
+    one place is the first thing a reader finds, and it is now the least accurate of the three. This is
+    the same pattern as <a href="#f-m1">M1</a> and <a href="#f-m13">M13</a>, and the reason those three
+    are grouped in the executive summary.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Nothing structural — the snapshot route is correct and fast. Reword the comment
+    to say what is actually true: one place <em>decides</em>, and two places read the decision.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l12">
+  <div class="head">
+    <span class="fid">L12</span>
+    <h3>Most of the service layer is <code>public</code> only to be reached from an <code>internal</code> composition root</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>MdNotes.csproj:26</code> already grants <code>InternalsVisibleTo(MdNotes.Tests)</code>, and
+          the precedent is set: <code>VaultService.Invalidate</code> (<code>:422</code>) and
+          <code>Sidebar.RowUnder</code> (<code>:140</code>) are <code>internal</code> with comments saying
+          why.</li>
+      <li>Nine concrete services are <code>public</code> with exactly one consumer each, and that consumer
+          — <code>AppSession</code> or <code>Program</code> — is itself <code>internal</code>:
+          <code>SearchService</code>, <code>JsonSettingsService</code>, <code>NoteTemplateService</code>,
+          <code>VaultIgnoreService</code>, <code>MermaiderDiagramRenderer</code>,
+          <code>WindowsFileAssociationService</code>, <code>UnsupportedFileAssociationService</code>,
+          <code>DialogService</code>, <code>SvgCssInliner</code>.</li>
+      <li><code>WikiLinkParser</code> (<code>Services/Markdown/WikiLinkExtension.cs:41</code>) is
+          <code>public</code> and used only within its own file.</li>
+      <li>Public members with no caller outside their own type:
+          <code>EditorViewModel.RememberPosition</code>,
+          <code>QuickSwitcherViewModel.MoveSelection</code>/<code>OpenSelected</code>/<code>Close</code>,
+          <code>SettingsViewModel.Close</code>/<code>SetSaveMode</code> (all reached through their
+          generated commands), and <code>NotePositions.Count</code>, which has <strong>zero</strong>
+          production callers.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Nothing outside the assembly can reach any of these, so the visibility is not protecting anything —
+    it is making "who can call this?" a harder question than it is. The practical cost shows up when
+    judging a change: a <code>public</code> method reads as part of a contract, so a reader hesitates over
+    a signature change that is in fact entirely local.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Worth tightening opportunistically, not as a sweep. The genuinely public surface
+    should stay exactly as it is and is easy to identify: <code>AppServices</code>, the eight service
+    interfaces, the <code>Models</code> records and enums, and the view models bound by compiled XAML
+    <code>x:DataType</code> (<code>NoteResultViewModel</code>, <code>MatchViewModel</code>,
+    <code>SwitcherItem</code>, <code>ScopeItem</code>, <code>ModalOverlay</code>).</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l13">
+  <div class="head">
+    <span class="fid">L13</span>
+    <h3>Theme resource keys are bare strings, and a wrong one degrades silently</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>Roughly twenty inline literals across three files:
+          <code>"MdText"</code>, <code>"MdTextMuted"</code>, <code>"MdSurfaceCode"</code>,
+          <code>"MdAccent"</code>, <code>"MdBorder"</code>, <code>"MdError"</code>,
+          <code>"MdSurface"</code>, <code>"Icon.folder"</code>, <code>"Icon.square"</code>,
+          <code>"Icon.square-check"</code> — in <code>Views/Markdown/BlockRenderer.cs</code>,
+          <code>Views/Markdown/InlineRenderer.cs</code> and <code>Views/Markdown/MarkdownView.cs</code>.</li>
+      <li><code>Views/Markdown/MarkdownView.cs:131-135</code> is the one place that anticipates a missing
+          key, with an explicit hardcoded-hex fallback and a comment saying so.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>A dynamic resource reference with a typo does not throw and does not warn — the property simply
+    keeps its default, so the failure is a subtly wrong colour in one theme, most likely noticed by a
+    user rather than by a test. Renaming a key in <code>Themes/Palette.axaml</code> is a full-text search
+    away from being safe, which is the definition of a change that amplifies quietly.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>A small holder of key names referenced by the renderers would make a rename a
+    compile error. Low urgency while the palette is stable.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l14">
+  <div class="head">
+    <span class="fid">L14</span>
+    <h3>No logging anywhere, so every swallowed failure is unrecoverable information</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>The only trace sink in the application is Avalonia's own, at <code>Program.cs:31</code>.</li>
+      <li>Of 22 <code>catch</code> blocks in production code, <strong>zero</strong> log and
+          <strong>zero</strong> rethrow. Two have empty bodies
+          (<code>Services/IgnoreFile.cs:32</code>, <code>Services/SingleInstance.cs:71</code>); eleven
+          return a sentinel.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>This is reported as a trade-off, not a defect. For a local, single-user, no-network notes app,
+    declining to write a log file is a defensible privacy-and-simplicity choice, and the two-tier dialog
+    design means the failures a user can act on <em>do</em> reach them. The cost lands on the developer:
+    when a user reports that exclusions stopped working, or that a second launch opened a second app,
+    there is no evidence to ask for. <a href="#f-h2">H2</a>, <a href="#f-m9">M9</a> and
+    <a href="#f-m14">M14</a> are all cases where the absence bites.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>If diagnostics are ever wanted, the swallow sites are already identified and
+    centralised enough that adding a sink is a small change. Nothing needs doing now.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l15">
+  <div class="head">
+    <span class="fid">L15</span>
+    <h3>Hardcoded lengths sitting beside the literals they measure</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/EditorViewModel.cs:204,207</code> — <code>".md"</code> then
+          <code>[..^3]</code> (also <a href="#f-m1">M1</a>).</li>
+      <li><code>Models/NoteTitle.cs:45,48</code> — <code>"title:"</code> tested, then written again to
+          take its length off the front.</li>
+      <li><code>Services/SvgCssInliner.cs:35,91,93</code> — <code>"var("</code> searched, then
+          <code>start + 3</code>, then <code>[4..^1]</code>: three encodings of one length in one file.
+          Same shape again at <code>:99,113</code> for <code>"color-mix("</code>.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Each is correct today and each breaks silently rather than loudly if the literal changes — the
+    slice still succeeds, it just cuts in the wrong place. The <code>SvgCssInliner</code> case is the
+    clearest, because the three encodings are not adjacent and one of them is arithmetic on an index.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Where the literal is already a constant, slice by its <code>Length</code>. Where
+    it is not, making it one is the same edit.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-l16">
+  <div class="head">
+    <span class="fid">L16</span>
+    <h3>Duplicated state kept in step by hand</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li><code>ViewModels/SearchReplaceViewModel.cs:26</code> (<code>_undo</code>) and <code>:45</code>
+          (<code>CanUndo</code>) are one fact in two fields, re-synced by hand at <code>:98</code> and
+          <code>:219-220</code>. <code>CanUndo</code> is only ever <code>_undo is not null</code>.</li>
+      <li><code>Services/MatchFinder.cs:17,89</code> — the same shape as an invariant instead:
+          <code>_regex</code> is non-null exactly when <code>options.UseRegex</code>, enforced only by the
+          branch at <code>:47</code> and unexpressed in the type, which is why <code>:89</code> needs
+          <code>!</code>.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Both are correct as written and both are small. They are the same category as
+    <a href="#f-l2">L2</a>: a fact the compiler could hold, held instead by a convention that every future
+    edit has to honour. The <code>_undo</code> pair is the more likely to drift, since a third place that
+    clears the snapshot would have to remember the flag.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p><code>CanUndo</code> can be derived rather than stored. <code>MatchFinder</code>'s
+    invariant is better expressed by giving the two modes separate shapes, but that is a larger change
+    than the problem warrants — a comment at the field would do.</p></div>
+  </div>
+</div>
+
+<h2 id="s5"><span class="num">5</span>Complexity Hotspots</h2><div class="rule"></div>
+
+<p>The usual complexity smells are largely <em>absent</em> here, and that is worth stating before the
+exceptions. No method in the production tree exceeds about 45 lines. Nesting rarely passes two levels,
+because the codebase reaches for pattern matching and early return instead. There are no long parameter
+lists — <code>AppServices</code> exists precisely to prevent one. So "complexity hotspot" in this
+codebase means something milder than usual: places where understanding one change requires holding
+several files in your head, not places where a single method is unreadable.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Location</th><th>Size</th><th>What makes it dense</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="loc">ViewModels/<br>VaultWorkspaceViewModel.cs</td>
+      <td>650 lines<br>~45 members</td>
+      <td>The largest file. Holds the tree, selection, note and folder CRUD, wikilink resolution, drag
+          and drop, manual ordering, and the sidebar search — with two timers, a cancellation source and
+          a generation counter live at once.</td>
+      <td><strong>Accept.</strong> Its own doc (<code>:12-23</code>) argues these change for one reason —
+          the vault — and the split from <code>MainViewModel</code> was deliberate. Each member is short
+          and the concurrency reasoning is written down at every site. Splitting again would scatter
+          state that genuinely interacts.</td>
+    </tr>
+    <tr>
+      <td class="loc">Services/VaultService.cs</td>
+      <td>520 lines</td>
+      <td>Six mutations, two watchers, two caches (ignore list and snapshot), a lock, and a revision
+          counter. <code>CurrentSnapshot</code> (<code>:380-415</code>) takes the lock twice around an
+          unlocked walk; <code>MoveTo</code> (<code>:259-312</code>) is five disk operations under one
+          <code>finally</code>.</td>
+      <td><strong>Accept with care.</strong> Every non-obvious decision is explained — why the walk is
+          outside the lock, why invalidation is in a <code>finally</code>, why the watcher must never
+          walk. This is the file to read slowly, not the file to split. <a href="#f-m10">M10</a> and
+          <a href="#f-l7">L7</a> are the two places that reasoning has gaps.</td>
+    </tr>
+    <tr>
+      <td class="loc">ViewModels/<br>SearchReplaceViewModel.cs</td>
+      <td>431 lines<br>3 classes</td>
+      <td>Two guard flags (<code>_loading</code>, <code>_syncing</code>) coordinating a tri-state parent
+          checkbox against child checkboxes, an exclusion set surviving rescans, a debounce, a
+          cancellation source and a one-step undo.</td>
+      <td><strong>Accept.</strong> The tri-state logic (<code>:362-406</code>) is the densest code in the
+          repository, but it is small, commented at the one counter-intuitive line (<code>:380</code>),
+          and covered by tests. The flags are the standard answer to this problem.</td>
+    </tr>
+    <tr>
+      <td class="loc">Services/SvgCssInliner.cs</td>
+      <td>147 lines</td>
+      <td>A hand-written CSS subset parser: variable resolution with fallbacks, <code>color-mix</code>,
+          <code>rem</code> conversion, hex parsing, and manual paren matching — with index arithmetic
+          throughout.</td>
+      <td><strong>Genuinely the hardest file to modify.</strong> It is also the best isolated: pure,
+          static, no dependencies, and it has <code>SvgCssInlinerTests</code>. The complexity is inherent
+          to the job (Svg.Skia cannot do CSS), not incidental. See <a href="#f-l6">L6</a> and
+          <a href="#f-l15">L15</a>.</td>
+    </tr>
+    <tr>
+      <td class="loc">Views/MainWindow.axaml.cs</td>
+      <td>101 lines</td>
+      <td>Small, but carries three separate mechanisms: manual event subscription with
+          <code>DataContext</code> churn handling, imperative grid mutation by index, and a cancel-then-
+          reclose <code>async void</code> dance.</td>
+      <td><strong>The one to actually tidy.</strong> Disproportionate density for its size, and the source
+          of <a href="#f-m5">M5</a>, <a href="#f-m15">M15</a> and half of <a href="#f-h1">H1</a>.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout">
+  <p><b>The real hotspot is not a file.</b> It is the settings pipeline, which is spread thin across six
+  files and has no single place to read. See <a href="#f-ca1">CA1</a>.</p>
+</div>
+
+<h2 id="s6"><span class="num">6</span>Duplication &amp; Consistency</h2><div class="rule"></div>
+
+<p>Duplication was swept systematically rather than spotted: every path expression, every text-matching
+expression and every tree traversal in the production tree was enumerated and compared. The headline is
+that the <em>expensive</em> duplication has already been eliminated — and the codebase records each
+elimination. What remains is a set of second-order copies, several of which sit directly beneath
+comments announcing that the problem was solved.</p>
+
+<h3>Already consolidated — and documented as such</h3>
+<div class="ev"><ul>
+  <li><strong>One disk walk.</strong> <code>Services/VaultWalk.cs:46,51</code> are the only calls to
+      <code>Directory.Enumerate*</code> anywhere. The file's comment (<code>:5-13</code>) records that
+      this was three walks that came to disagree about <code>.git</code>.</li>
+  <li><strong>One name-matching rule.</strong> <code>Services/NameMatch.cs:17-24</code> — extracted
+      because wikilink resolution and the quick switcher each had a copy.</li>
+  <li><strong>One find.</strong> <code>Services/MatchFinder.cs:7-9</code> — preview and apply share it,
+      so a replace writes exactly what was shown.</li>
+  <li><strong>One service set.</strong> <code>Services/AppServices.cs:8-12</code> — replaced nine
+      parameters written out at fourteen sites.</li>
+  <li><strong>One overlay chrome.</strong> <code>Views/Shell/ModalOverlay.cs:12-16</code> — <em>"three
+      copies of this is how the settings panel ended up with a focus fix the other two never got."</em></li>
+</ul></div>
+
+<h3>What remains</h3>
+<div class="scroll">
+<table>
+  <thead><tr><th>Duplicated thing</th><th>Copies</th><th>Do they agree?</th><th>Risk</th></tr></thead>
+  <tbody>
+    <tr><td><code>".md"</code> and "append it if absent"</td>
+        <td class="loc">4 declarations<br>+ 2 helpers</td>
+        <td>Yes, by coincidence</td>
+        <td class="sev sev-med">M — <a href="#f-m1">M1</a></td></tr>
+    <tr><td>LRU eviction</td><td class="loc">3 implementations</td>
+        <td>Behaviourally yes, asymptotically no</td>
+        <td class="sev sev-med">M — <a href="#f-m2">M2</a></td></tr>
+    <tr><td>Relative-key + exclusion test</td><td class="loc">2, in one file</td>
+        <td>Yes</td><td class="sev sev-med">M — <a href="#f-m10">M10</a></td></tr>
+    <tr><td>Tree flatten + <code>/</code> label</td><td class="loc">3</td>
+        <td>Yes</td><td class="sev sev-med">M — <a href="#f-m11">M11</a></td></tr>
+    <tr><td>"Does this name match?"</td><td class="loc">2 rules</td>
+        <td><strong>No</strong> — tiered vs. plain contains</td>
+        <td class="sev sev-med">M — <a href="#f-m12">M12</a></td></tr>
+    <tr><td>250 ms debounce</td><td class="loc">3 literals</td>
+        <td>Yes, unenforced</td><td class="sev sev-med">M — <a href="#f-m13">M13</a></td></tr>
+    <tr><td>"Title else file name"</td><td class="loc">3</td>
+        <td>Yes</td><td class="sev sev-low">L — <a href="#f-l11">L11</a></td></tr>
+    <tr><td>Snippet context helper</td><td class="loc">2</td>
+        <td><strong>No</strong> — 60/<code>…</code> vs 40/<code>...</code></td>
+        <td class="sev sev-low">L — <a href="#f-m12">M12</a></td></tr>
+    <tr><td>Expected-IO exception filter</td><td class="loc">2</td>
+        <td>Yes</td><td class="sev sev-low">L — <a href="#f-l3">L3</a></td></tr>
+    <tr><td>Pluralisation helper</td><td class="loc">2</td>
+        <td><strong>No</strong> — irregular plurals</td>
+        <td class="sev sev-low">L — <a href="#f-l3">L3</a></td></tr>
+    <tr><td><code>260</code> sidebar width</td><td class="loc">3</td>
+        <td>Yes</td><td class="sev sev-low">L — <a href="#f-m5">M5</a></td></tr>
+    <tr><td>Gesture strings (e.g. <code>Ctrl+Shift+H</code>)</td><td class="loc">3 per command</td>
+        <td>Yes</td><td class="sev sev-med">M — <a href="#f-ca2">CA2</a></td></tr>
+    <tr><td>Write-through setting property</td><td class="loc">8 + 8 in the test fake</td>
+        <td>Yes</td><td class="sev sev-med">M — <a href="#f-ca1">CA1</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Equivalent problems solved differently</h3>
+<p>Separate from duplication: places where the codebase answers one question two ways, with no rule
+stating which to use.</p>
+<div class="ev"><ul>
+  <li><strong>Sizing a grid column</strong> — bound property vs. imperative index (<a href="#f-m5">M5</a>).</li>
+  <li><strong>Bounding a cache</strong> — linked-list LRU, scanning LRU, generation-based
+      (<a href="#f-m2">M2</a>).</li>
+  <li><strong>A failing file operation</strong> — swallow, swallow narrowly, or propagate
+      (<a href="#f-m6">M6</a>).</li>
+  <li><strong>Making a setting take effect</strong> — four routes (<a href="#f-ca1">CA1</a>). The most
+      consequential of the five.</li>
+  <li><strong>Invoking a ribbon action</strong> — command binding, or event plus code-behind
+      (<a href="#f-l8">L8</a>).</li>
+</ul></div>
+
+<p>A note on what is <em>not</em> reported here. <code>DialogGuard</code>'s three near-identical
+try/catch shells (<code>:25,37,54</code>) differ in sync/async/bool and are documented; the two
+<code>IndexOf</code> overloads in <code>TreeNodeViewModel</code> (<code>:77,84</code>) are the same loop
+with the arguments swapped and merging them would take a lambda to save four lines;
+<code>MatchFinder</code>'s <code>Head</code>/<code>Tail</code> (<code>:140-144</code>) are mirrored
+one-liners. In each case the duplication is cheaper than the abstraction that would remove it.</p>
+
+<h2 id="s7"><span class="num">7</span>Error-Prone Implementation</h2><div class="rule"></div>
+
+<p>Every <code>catch</code> block and every error-discarding construct in the production tree was
+enumerated. The totals first, because they frame everything else.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Construct</th><th>Count</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><code>catch</code> blocks</td><td>22</td>
+        <td>2 with empty bodies; 11 returning a sentinel; 9 broad <code>catch (Exception)</code>, 4 more
+            filtered to the IO family. <strong>0 rethrow, 0 log.</strong></td></tr>
+    <tr><td><code>_ =</code> discarded tasks</td><td>10</td>
+        <td>8 wrap a <code>Guard</code> and are the documented pattern for a timer or event handler. Two
+            do not: <code>SingleInstance.cs:51</code> and <code>SearchReplaceViewModel.cs:62</code>.</td></tr>
+    <tr><td><code>async void</code></td><td>2</td>
+        <td>Both event handlers; both do unguarded work (<a href="#f-m15">M15</a>).</td></tr>
+    <tr><td><code>.Result</code> / <code>.Wait()</code> / <code>GetAwaiter().GetResult()</code></td>
+        <td><strong>0</strong></td>
+        <td>None anywhere. Notable for a desktop app and worth protecting.</td></tr>
+    <tr><td><code>!</code> null-forgiving</td><td>9</td>
+        <td>3 are the standard <code>DataContext!</code> cast in code-behind; 2 are framework nullability;
+            2 are locally provable; 2 assert a correlation the type does not express
+            (<a href="#f-l2">L2</a>, <a href="#f-l16">L16</a>).</td></tr>
+    <tr><td><code>?? throw</code></td><td>15</td>
+        <td>Used consistently where a null genuinely is a bug, with a message naming the cause. Good.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The patterns that make future bugs more likely</h3>
+
+<p><strong>Silent failure at the two places it costs most.</strong> Two catch blocks have empty bodies.
+<code>Services/IgnoreFile.cs:32</code> means a failed save of the user's exclusion list says nothing at
+the moment of saving (<a href="#f-m14">M14</a>). <code>Services/SingleInstance.cs:71</code> is empty
+inside an unbounded loop, so a persistent failure spins rather than reporting
+(<a href="#f-m9">M9</a>). Neither can be diagnosed after the fact, because there is no log
+(<a href="#f-l14">L14</a>).</p>
+
+<p><strong>Unchecked assumptions the type system could hold.</strong> The recurring shape:
+<code>SwitcherItem</code>'s path-plus-flag (<a href="#f-l2">L2</a>), <code>MatchFinder</code>'s regex
+field valid only in one branch, and <code>_undo</code>/<code>CanUndo</code> hand-synced
+(<a href="#f-l16">L16</a>). Each is correct today and each relies on a convention rather than on the
+compiler.</p>
+
+<p><strong>Ambiguous optional states.</strong> Two are worth naming.
+<code>IgnoreFile</code>'s <code>string?</code> carries three meanings and is flattened to two at its
+only consumer, which then re-derives the third by reading the disk again
+(<a href="#f-m14">M14</a>). <code>NoteTemplateService.TryRead</code> (<code>:58-69</code>) returns null
+for four distinct causes, and <code>Probe()</code> (<code>:23-32</code>) recovers which by re-stat'ing —
+the same double-read shape, here used deliberately and harmlessly, but it is the second instance of the
+pattern.</p>
+
+<p><strong>Fragile ordering and index assumptions.</strong> Three, all in the view layer:
+<code>Shell.ColumnDefinitions[1]</code> depending on markup order (<a href="#f-m5">M5</a>);
+<code>"PART_LayoutRoot"</code> and <code>"Row"</code> depending on the Fluent theme's internal template
+names (<code>Views/Shell/Sidebar.axaml.cs:144,149</code>) — already flagged in-code and backed by a test
+that is meant to fail loudly; and <code>"PART_Scrim"</code> (<code>Views/Shell/ModalOverlay.cs:69</code>),
+which is this project's own template and therefore fine.</p>
+
+<p><strong>Undocumented invariants that hold today.</strong> The most load-bearing:
+<code>PathScope</code>'s callers must hand it normalised paths (<a href="#f-m7">M7</a>), and every
+non-conforming caller is safe only because paths happen to descend from a root normalised at
+<code>VaultService.cs:50</code>. Also <code>VaultWorkspaceViewModel.cs:429</code> — note loading is
+fire-and-forget, so two fast selection changes are unordered with respect to each other; in practice
+the second <code>Load</code> wins because both run on the UI thread, but nothing states it.</p>
+
+<p><strong>Magic values with real meaning.</strong> The codebase is better than average here: fifteen
+constants are named, including every filename, every URL scheme prefix and every clamp bound. The ones
+that are not: the two-second user-regex match timeout (<code>Services/MatchFinder.cs:31</code>), the
+32M-character content-cache budget (<code>Services/NoteContentCache.cs:30</code> — thirty lines of
+documentation, still an unnamed default parameter), the LRU capacities
+(<code>Views/Markdown/DiagramCache.cs:17</code>), the caret-position capacity
+(<code>Models/NotePositions.cs:17</code>), the three debounces (<a href="#f-m13">M13</a>), and the
+sidebar widths (<a href="#f-m5">M5</a>). Layout and typography literals in the two markdown renderers
+are numerous but are genuinely local to one visual decision each, and are not reported.</p>
+
+<h3>Code touching user documents</h3>
+<p>The brief asks for particular attention here, so the three findings that touch note content are
+called out together — with the caveat that data-loss analysis proper belongs to the Data Safety Review:
+<a href="#f-h1">H1</a> (an autosave failure is reported as a crash rather than as a failed save),
+<a href="#f-m3">M3</a> (undo does not re-check what Replace re-checks) and <a href="#f-m8">M8</a> (a
+note name accepted on one platform may be unrepresentable on another). Set against those, the
+protections that are genuinely well built deserve equal mention: <code>StillMatches</code> guards the
+forward replace, <code>NoteContentCache.Store</code> exists so the app never trusts a timestamp for text
+it wrote itself, <code>FlushUnsavedAsync</code> funnels every path that moves off a dirty note, and
+<code>MoveTo</code> and <code>Rename</code> invalidate in a <code>finally</code> so a mid-sequence
+failure cannot leave a stale tree.</p>
+
+<h2 id="s8"><span class="num">8</span>Change Amplification</h2><div class="rule"></div>
+
+<p>Four realistic changes were traced end to end. The spread between them is the interesting part: this
+codebase has already solved this problem twice, and the places it has not solved it are the places it
+has not yet tried.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Change</th><th>Files</th><th>Edit sites</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr><td>Add a service</td><td>1</td><td>1</td><td class="st st-done">Solved</td></tr>
+    <tr><td>Add an overlay</td><td>6</td><td>~10</td><td class="st st-done">Mostly irreducible</td></tr>
+    <tr><td>Add a command</td><td>4–7</td><td>5–9</td><td class="st st-part">Partly reducible</td></tr>
+    <tr><td>Add a setting</td><td>6–9</td><td>8–13</td><td class="st st-open">The hotspot</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="finding med" id="f-ca1">
+  <div class="head">
+    <span class="fid">CA1</span>
+    <h3>Adding one setting is eight edits and a choice between four undocumented propagation routes</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence — the eight mandatory sites</span>
+    <div class="ev"><ul>
+      <li><code>Services/ISettingsService.cs:13-37</code> — the interface member and its doc.</li>
+      <li><code>Services/JsonSettingsService.cs:10-21</code> — a field on the private <code>Data</code>
+          class, with its default.</li>
+      <li><code>Services/JsonSettingsService.cs:47-127</code> — a nine-line write-through property. This
+          is the eighth copy of one shape, so a single setting means <strong>three declarations in this
+          one file</strong>.</li>
+      <li><code>ViewModels/SettingsViewModel.cs:37-104</code> — a hand-rolled property (not
+          <code>[ObservableProperty]</code>, because the backing store is the service rather than a
+          field): guard, write, notify, and often a second notify for a status line.</li>
+      <li><code>ViewModels/SettingsViewModel.cs:152-164</code> — one more line in <code>Open()</code>'s
+          manual re-read list.</li>
+      <li><code>Views/Shell/SettingsPanel.axaml:77-112</code> — the control and its explanatory text.</li>
+      <li>The consumer that reads the value.</li>
+      <li><code>MdNotes.Tests/Fakes.cs:9-42</code> — <code>FakeSettings</code> mirrors the interface by
+          hand, so it is not optional even though it is outside the production tree.</li>
+    </ul></div>
+
+    <span class="lbl">Evidence — the four ways to make it take effect</span>
+    <div class="ev"><ul>
+      <li><strong>Broadcast.</strong> <code>AppSession.cs:44-47</code> filters
+          <code>ISettingsService.PropertyChanged</code> and calls <code>App.ApplyTheme</code>. Reaches
+          every window. Used by exactly one setting.</li>
+      <li><strong>View model calls the service directly.</strong>
+          <code>ViewModels/SettingsViewModel.cs:46</code> — <code>_vault.Refresh()</code> for note
+          titles.</li>
+      <li><strong>Through a second service.</strong> <code>IVaultIgnoreService</code> →
+          <code>Services/VaultIgnoreService.cs:18-28</code> → <code>vault.RefreshExclusions()</code> for
+          the gitignore switch. Same net effect as the previous one, different path.</li>
+      <li><strong>An injected per-window callback.</strong>
+          <code>ViewModels/SettingsViewModel.cs:18,148,179</code> — an <code>Action _changed</code> bound
+          at <code>ViewModels/MainViewModel.cs:74</code> to
+          <code>Editor.NotifySaveModeChanged</code>.</li>
+    </ul></div>
+
+    <span class="lbl">Why it matters</span>
+    <p>The eight edits are tedious but visible. The four routes are the real cost, because choosing wrong
+    produces a bug that only appears with two windows open — and one has already been chosen wrong.
+    <code>ThemeMode</code> is the only setting with a process-wide subscriber, so changing the auto-save
+    mode in window A leaves window B's status bar (<code>Views/Shell/StatusBar.axaml:19</code>, bound to
+    <code>EditorViewModel.SaveStatus:58-65</code>) advertising the old mode until something else happens
+    to refresh it. And because <code>Open()</code>'s re-read list omits <code>SaveMode</code>,
+    <code>IsAfterDelay</code>, <code>IsOnFocusChange</code>, <code>IsManual</code>,
+    <code>IsDelayEnabled</code> and <code>DelaySeconds</code>, opening the settings panel in window B
+    shows stale radio buttons too.</p>
+    <p>That re-read list is itself the tell. Its comment (<code>:155-156</code>) says it exists because
+    the template file or the exclusion list <em>"may have been created… by another editor, or by another
+    window"</em> — it is compensating by hand for the subscriptions that were not set up, and it grows by
+    one forgettable line per setting.</p>
+
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>Two separable improvements, in order of value. First, pick one propagation route
+    and state it: the broadcast already exists, already reaches every window, and already carries the
+    property name — most of the other three could be filters on it, which would make the multi-window
+    staleness structurally impossible rather than a thing to remember. Second, the
+    <code>Open()</code> re-read list wants to be derived rather than enumerated; whatever removes it also
+    removes the most likely way to get the next setting subtly wrong. The per-setting boilerplate in
+    <code>JsonSettingsService</code> is the least important of the three — it is repetitive, but it is
+    visible and the <code>[CallerMemberName]</code> trick already makes it hard to get wrong.</p></div>
+  </div>
+</div>
+
+<div class="finding med" id="f-ca2">
+  <div class="head">
+    <span class="fid">CA2</span>
+    <h3>Adding one command writes the gesture text three times, in three unlinked places</h3>
+    <span class="badges"><span class="b med">Medium</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <span class="lbl">Evidence</span>
+    <div class="ev"><ul>
+      <li>The command itself — a <code>[RelayCommand]</code> on <code>MainViewModel</code> or
+          <code>VaultWorkspaceViewModel</code>.</li>
+      <li><code>Views/MainWindow.axaml:15-23</code> — the <code>KeyBinding</code>.</li>
+      <li>A button in <code>Views/Shell/Ribbon.axaml</code>, <code>Sidebar.axaml</code> or
+          <code>PaneHeader.axaml</code>, whose tooltip <strong>repeats the gesture as prose</strong>.</li>
+      <li><code>Views/Shell/Sidebar.axaml:70-85</code> — a context-menu item, whose
+          <code>InputGesture</code> <strong>repeats it a third time</strong>.</li>
+      <li>Verified for one command: <code>Ctrl+Shift+H</code> appears at
+          <code>MainWindow.axaml:21</code>, <code>Sidebar.axaml:52</code> and
+          <code>Sidebar.axaml:76</code>.</li>
+      <li><code>Assets/Icons.axaml</code> — a new geometry, if the command gets a button.</li>
+      <li><code>ViewModels/VaultWorkspaceViewModel.cs:534-541</code> — if the command is vault-gated, one
+          more line in a hand-maintained block of eight <code>NotifyCanExecuteChanged()</code> calls. Omit
+          it and the button stays greyed out after a vault switch, with no error.</li>
+    </ul></div>
+    <span class="lbl">Why it matters</span>
+    <p>Rebinding a shortcut requires finding three string literals with nothing connecting them, and
+    missing one leaves the UI advertising a key that no longer works — a failure with no test and no
+    compile error. The <code>NotifyCanExecuteChanged</code> block is the second silent-failure list in
+    this section, the same shape as <code>SettingsViewModel.Open()</code>.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>The three gesture strings are the reducible part: one source that the binding,
+    the tooltip and the menu item all read would make the display text follow the binding by
+    construction. The <code>CanExecute</code> block is the more interesting one — it exists because
+    <code>HasVault</code> is a plain property; several commands sharing one observable gate would collapse
+    the list to nothing.</p></div>
+  </div>
+</div>
+
+<div class="finding low" id="f-ca3">
+  <div class="head">
+    <span class="fid">CA3</span>
+    <h3>Adding an overlay: ~10 sites, mostly irreducible, with one unenforced obligation</h3>
+    <span class="badges"><span class="b low">Low</span><span class="b conf">Conf: High</span></span>
+  </div>
+  <div class="body">
+    <p>Recorded here mainly as the <strong>positive</strong> case. <code>Views/Shell/ModalOverlay.cs</code>
+    plus its template at <code>Themes/Controls.axaml:211-234</code> genuinely carry the scrim, the card,
+    Escape, click-outside, focus-on-show and the commit-on-close fix, and the three call sites
+    (<code>Views/MainWindow.axaml:95-113</code>) are five uniform lines each. What remains per overlay —
+    a view model with its own open and close semantics, a <code>.axaml</code> pair, a command, a key
+    binding — is the overlay itself, not ceremony around it.</p>
+    <p>One gap. <code>ViewModels/VaultWorkspaceViewModel.cs:149</code> must call
+    <code>SearchReplace.Close()</code> on dispose because that overlay owns a timer and a cancellation
+    source. <code>QuickSwitcherViewModel</code> owns neither, so its absence from
+    <code>Dispose</code> is correct — which means the pattern "overlays with resources get a line here"
+    is invisible to the next author, who will see one of two overlays doing it and no rule.</p>
+    <span class="lbl">Suggested direction</span>
+    <div class="dir"><p>An overlay view model that owns resources could say so in its type, so that
+    forgetting the teardown line becomes a compile error rather than a leaked timer. Small, and only
+    worth doing when a fourth overlay appears.</p></div>
+  </div>
+</div>
+
+<div class="banner">
+  <span class="lbl">CA4 — Adding a service: one site</span>
+  <p><code>Services/AppServices.cs:8-12</code> records what this used to cost: <em>"the nine were written
+  out verbatim at fourteen sites: adding the ninth service was a fourteen-file edit that reached tests
+  about diagram caching and drag ordering. The tenth was one field here — which is what it was for."</em>
+  This is the counter-example the rest of this section is measured against, and it shows the project
+  already knows how to fix amplification when it decides to.</p>
+</div>
+
+<h2 id="s9"><span class="num">9</span>AI-Assisted Development Smells</h2><div class="rule"></div>
+
+<div class="callout">
+  <p><b>Scope of this section.</b> It reports observable maintainability consequences only. Nothing here
+  claims any code was AI-generated, and nothing here could establish that. The patterns below are the
+  ones the brief asks about; they occur in hand-written codebases too, and several of them here are
+  clearly the residue of ordinary iterative development — the codebase's own comments describe the
+  refactors that produced them.</p>
+</div>
+
+<p>Most items in the catalogue simply are not present. There are <strong>no</strong> wrappers layered
+over wrappers, no generic infrastructure built for a single hypothetical consumer, no unreachable
+compatibility shims, no speculative configuration surface, and no over-application of interfaces — the
+eight service interfaces all exist because a test substitutes them, which is a demonstrated need rather
+than a guessed one. What follows is what was actually observed.</p>
+
+<h3>Observed</h3>
+
+<p><strong>Comments that no longer match the implementation — the strongest signal here.</strong> Four,
+all of the same kind: a comment asserting single-sourcing that the code no longer provides.
+<code>Services/VaultWalk.cs:17-18</code> declares <em>"the one place that decides"</em> above the first
+of four <code>".md"</code> declarations (<a href="#f-m1">M1</a>).
+<code>Services/VaultService.cs:129-133</code> declares <em>"the one place that answers it"</em> above one
+of three title fallbacks (<a href="#f-l11">L11</a>).
+<code>ViewModels/VaultWorkspaceViewModel.cs:42-43</code> describes three debounce literals as one
+decision (<a href="#f-m13">M13</a>). And the precondition comment at
+<code>Services/NoteImagePath.cs:4-6</code> was copied near-verbatim onto
+<code>Services/NoteTemplateService.cs:35-38</code>, a caller that implements only half of what it
+describes (<a href="#f-m7">M7</a>). In a codebase where comments carry this much weight, a comment that
+has quietly become false is more expensive than elsewhere.</p>
+
+<p><strong>Multiple representations of one concept.</strong> Three LRU eviction strategies
+(<a href="#f-m2">M2</a>); two rules for "does this name match" (<a href="#f-m12">M12</a>); three
+tree-flatten-with-label routines (<a href="#f-m11">M11</a>); two mechanisms for sizing a grid column in
+one window (<a href="#f-m5">M5</a>). Each was locally reasonable where it was written. The collective
+effect is that several common questions have more than one answer in this repository.</p>
+
+<p><strong>Near-duplicate helpers.</strong> Two <code>Count</code> pluralisers, two "append the
+extension" implementations against two different constants, the same exception filter as a named
+predicate and inline, the same relative-key expression written twice sixty lines apart
+(<a href="#f-l3">L3</a>, <a href="#f-m1">M1</a>, <a href="#f-m10">M10</a>).</p>
+
+<p><strong>A forwarding layer with no behaviour.</strong>
+<code>ViewModels/MainViewModel.cs:119-125</code> — three methods that forward verbatim, each carrying a
+copy of the doc comment it forwards to (<a href="#f-l4">L4</a>).</p>
+
+<p><strong>One abstraction with a single real consumer.</strong> The generic
+<code>Lru&lt;TKey,TValue&gt;</code> (<code>Views/Markdown/Lru.cs</code>) is used only by
+<code>DiagramCache</code>, twice — and meanwhile the two other bounded maps in the codebase each rolled
+their own. A generic written for one consumer while its natural second and third consumers went their
+own way is the shape worth noticing, more than the generic itself.</p>
+
+<p><strong>Premature configurability.</strong> Mild and mostly defensible.
+<code>DiagramCache(renderer, pictureCapacity = 64, bitmapCapacity = 32)</code>,
+<code>NoteContentCache(budgetChars = 32_000_000)</code> and <code>NotePositions(capacity = 200)</code>
+all take parameters that production never varies — but each is used by tests to force eviction, which is
+a real consumer. <code>NoteTemplateService.ContentFor(folderPath, name)</code>
+(<code>Services/NoteTemplateService.cs:14</code>) is the honest case: <code>folderPath</code> is unused,
+and the class comment says so and says what it is for. That is a documented hook, not a hidden one.</p>
+
+<p><strong>Locally reasonable additions that add up.</strong> The clearest instance is the settings
+pipeline (<a href="#f-ca1">CA1</a>). Each of its four propagation routes was a sensible answer to the
+setting in front of its author — the theme is app-wide, so broadcast it; note titles need the tree
+rebuilt, so call the vault; the gitignore switch already had a service, so use it; auto-save affects the
+editor, so hand the editor a callback. Four good local decisions, and the result is that the fifth
+setting has no obvious right answer and the fourth one is already subtly wrong across windows.</p>
+
+<h3>Not observed, and worth recording as such</h3>
+<div class="ev"><ul>
+  <li><strong>No excessive defensive checks.</strong> Null handling is proportionate; the codebase uses
+      <code>?? throw</code> with a real message where null means a bug, and pattern matching where it
+      does not.</li>
+  <li><strong>No repeated fallback behaviour.</strong> Fallbacks exist (theme colours, note titles,
+      display names) and each has a stated reason.</li>
+  <li><strong>No obsolete compatibility code.</strong> Nothing in the tree is unreachable, and there are
+      no version checks or migration paths for shapes that no longer exist.</li>
+  <li><strong>No unnecessary conversion chains.</strong> Data crosses each layer once. The one place that
+      converts and converts back — milliseconds to seconds in the settings panel
+      (<code>ViewModels/SettingsViewModel.cs:141,144</code>) — has a one-line comment explaining that
+      nobody thinks in milliseconds.</li>
+  <li><strong>No needless copying of significant data.</strong> The snapshot hands the same array instance
+      to every caller and says so (<code>Services/VaultWalk.cs:78</code>); the content cache exists
+      specifically to stop re-reading. The one repeated transformation is diacritic folding over whole
+      notes per search (<code>Services/SearchService.cs:28</code>), and <code>Fold</code> short-circuits
+      to return the original string when nothing folds.</li>
+</ul></div>
+
+<h2 id="s10"><span class="num">10</span>Language / Framework Usage</h2><div class="rule"></div>
+
+<p>C# and Avalonia are used well, and mostly idiomatically for .NET 10. This section reports only the
+cases where usage materially affects clarity, correctness, maintainability, performance or testability —
+not style.</p>
+
+<h3>Used well</h3>
+<div class="ev"><ul>
+  <li><strong>Modern C# where it earns its place.</strong> Primary constructors on services, collection
+      expressions, list patterns (<code>name.IndexOfAny(['/', '\\'])</code>), property patterns
+      (<code>is { IsFolder: true } folder</code>), <code>[GeneratedRegex]</code> for the two hot regexes,
+      and <code>string.Create</code> with a static lambda in <code>DiacriticFolder</code> to fold without
+      an intermediate allocation.</li>
+  <li><strong><code>System.Threading.Lock</code></strong> (<code>VaultService.cs:13</code>,
+      <code>NoteContentCache.cs:39</code>) rather than <code>lock (object)</code> — the .NET 9+ idiom.</li>
+  <li><strong>The MVVM toolkit used as intended.</strong> <code>[ObservableProperty]</code> with
+      <code>partial</code> properties, <code>[NotifyPropertyChangedFor]</code> for derived values,
+      <code>[RelayCommand(CanExecute = ...)]</code>, and generated <code>On…Changed</code> partials for
+      side effects. No hand-written <code>INotifyPropertyChanged</code> plumbing anywhere in the view
+      models.</li>
+  <li><strong>Cancellation done properly.</strong> Tokens threaded into the service, checked per note
+      with a comment explaining the granularity choice, <code>OperationCanceledException</code> caught at
+      exactly the right boundary, and a second post-await check for the race the exception cannot
+      catch (<code>VaultWorkspaceViewModel.cs:494-496</code>).</li>
+  <li><strong>Avalonia used natively rather than fought.</strong> <code>StyledProperty</code> with class
+      handlers, <code>AttachedProperty</code> for <code>InitialFocus</code>, a templated
+      <code>ContentControl</code> for the overlay, compiled bindings on by default
+      (<code>MdNotes.csproj:10</code>), and rebuilds coalesced at
+      <code>DispatcherPriority.Render</code>.</li>
+  <li><strong>No <code>ConfigureAwait</code> anywhere</strong> — correct for a UI framework where
+      continuations must resume on the UI thread, and consistently so.</li>
+</ul></div>
+
+<h3>Where it costs something</h3>
+<div class="ev"><ul>
+  <li><strong>Nullable warnings are only warnings.</strong> <code>Nullable</code> is enabled
+      (<code>MdNotes.csproj:7</code>), but there is no <code>TreatWarningsAsErrors</code>, no
+      <code>WarningsAsErrors=Nullable</code>, no <code>.editorconfig</code> and no
+      <code>Directory.Build.props</code>. The discipline visible in the code is entirely the authors' —
+      the build does not enforce it. Given how little nullable debt exists (nine <code>!</code> in 6 500
+      lines), turning the warnings into errors would cost almost nothing now and would keep it that way.</li>
+  <li><strong>Hand-rolled properties where the store is a service.</strong>
+      <code>SettingsViewModel</code>'s four properties cannot use <code>[ObservableProperty]</code>
+      because the value lives in <code>ISettingsService</code>, so the guard-write-notify shape is
+      repeated by hand (<a href="#f-ca1">CA1</a>). Not misuse — the generator does not cover this case —
+      but it is where the settings boilerplate comes from.</li>
+  <li><strong>Custom code standing in for framework behaviour, all justified.</strong>
+      <code>LinkHitTesting</code> maps clicks to character ranges because Avalonia has no clickable
+      inline; <code>VaultWalk</code> is hand-rolled because <code>SearchOption.AllDirectories</code>
+      cannot be stopped from descending; <code>NoteTitle</code> scans by hand rather than adding a YAML
+      dependency; <code>SvgCssInliner</code> exists because Svg.Skia has no CSS. Each carries its reason
+      in a comment. This is the right instinct and the right documentation of it.</li>
+  <li><strong>One framework-adjacent fragility.</strong> <code>Views/Shell/Sidebar.axaml.cs:144,149</code>
+      reaches into the Fluent theme's template by part name. Already flagged in-code at
+      <code>:133-139</code>, with <code>SidebarDragTests</code> as the tripwire — the right handling of an
+      unavoidable dependency.</li>
+</ul></div>
+
+<h2 id="s11"><span class="num">11</span>Positive Findings</h2><div class="rule"></div>
+
+<p>These are the implementation choices that should survive any future refactor. Several are listed with
+the same specificity as the problems, because "keep doing this" is only actionable if it names the thing.</p>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P1</span>
+    <h3>Comments that record reasoning, not restatement</h3></div>
+  <div class="body">
+    <p>The single best attribute of this codebase. Comments say why a decision was made, what was tried
+    before, and what it cost — often with numbers.
+    <code>Services/NoteContentCache.cs:3-29</code> explains the budget with measured timings and names
+    the failure mode past it. <code>Services/AppServices.cs:8-12</code> records the fourteen-site edit it
+    eliminated. <code>Services/VaultWalk.cs:5-13</code> says which three walks it replaced and what they
+    disagreed about. <code>ViewModels/TreeNodeViewModel.cs:91-98</code> explains why this comparison is
+    deliberately stricter than the one two files away. <code>Views/Shell/ModalOverlay.cs:12-16</code>
+    names the bug that three copies of the chrome caused. A reader can reconstruct the reasoning behind
+    almost any non-obvious line without asking anyone.</p>
+    <p>This is also why <a href="#f-m13">M13</a>, <a href="#f-m1">M1</a> and <a href="#f-l11">L11</a>
+    matter more here than they would elsewhere: in a codebase this comment-driven, a comment that has
+    become false is a trap rather than a nuisance.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P2</span>
+    <h3>The two-tier error funnel, and the tests that hold it in place</h3></div>
+  <div class="body">
+    <p><code>ViewModels/DialogGuard.cs</code> handles failures a command foresees and shows the message
+    they were thrown with; <code>App.axaml.cs:38-42</code> catches what escapes and says the failure was
+    unexpected. The design is good on its own, but what makes it durable is
+    <code>MdNotes.Tests/ErrorFunnelTests.cs</code>, which asserts that the two <em>do not sound alike</em>
+    — pinning the property the design exists for rather than its implementation. That the distinction is
+    testable is why <a href="#f-h1">H1</a> could be stated as a defect rather than as an opinion.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P3</span>
+    <h3>Rules pulled out of the UI so they can be tested without one</h3></div>
+  <div class="body">
+    <p><code>VaultWorkspaceViewModel.PositionIn</code> (<code>:363-372</code>) is the model: the sidebar
+    measures where in a row the pointer is, and this static function says what the user meant by it. The
+    comment states the intent exactly — <em>"This is a product rule, not a geometry detail… so it can be
+    exercised without a pointer-driven UI test."</em> The same instinct produced
+    <code>ResolveDrop</code>, <code>NameMatch</code>, <code>NoteTitle</code>, <code>VaultIgnore</code>,
+    <code>NoteTemplate</code> and <code>MatchFinder</code> — all pure, all directly tested.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P4</span>
+    <h3>Test infrastructure that makes the right test easy to write</h3></div>
+  <div class="body">
+    <p><code>TempVault</code> gives a real <code>VaultService</code> over a temp folder and seeds it
+    behind the service's back so no test waits out a file watcher. <code>TestServices.For</code> builds
+    the ten-member service set in one line. <code>Fakes.cs</code> provides recording doubles that count
+    what happened (<code>PositionSaves</code>, <code>Saves</code>) rather than merely allowing it — and
+    <code>ThrowingDialogs</code> inverts the usual default so that a test whose point is "nothing broke"
+    fails loudly if anything was swallowed. The headless Avalonia harness means whole windows, drag
+    targeting and focus behaviour are all covered. Fifty-one test files against seventy-nine production
+    files is a ratio most projects claim and few have.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P5</span>
+    <h3>Concurrency reasoning written down at every site</h3></div>
+  <div class="body">
+    <p>Three vault-wide scans run off the UI thread, each with a measured justification in the comment
+    above it. Cancellation uses both a token and a post-await check, with the race the second one covers
+    explained at <code>VaultWorkspaceViewModel.cs:494-496</code>. The tree walk uses a generation counter
+    so a slow walk finishing late drops its answer rather than reinstating an old vault
+    (<code>:51-56</code>). <code>NoteContentCache</code> holds its lock around the map but explicitly not
+    around the disk read, and says why (<code>:34-38</code>). <code>VaultService.CurrentSnapshot</code>
+    documents the one field it reads unlocked and names what compensates. No
+    <code>.Result</code>, no <code>.Wait()</code>, no deadlock surface.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P6</span>
+    <h3>Single-sourced rules where it counted most</h3></div>
+  <div class="body">
+    <p>One disk walk answering the tree, the notes and the folders. One find shared by the replace
+    preview and the replace itself, so what is written is what was shown. One name-matching rule behind
+    both wikilinks and the switcher. One overlay chrome behind all three overlays. One service record
+    behind every window. Each of these removed a class of bug rather than a class of typing, and each is
+    documented as having done so. <a href="#f-m1">M1</a>, <a href="#f-m12">M12</a> and
+    <a href="#f-m11">M11</a> are all "the same instinct, one level up" — which is the least alarming kind
+    of finding to have.</p>
+  </div>
+</div>
+
+<div class="finding good low">
+  <div class="head"><span class="fid">P7</span>
+    <h3>Contained side effects and honest state transitions</h3></div>
+  <div class="body">
+    <p><code>EditorViewModel.SetContent</code> (<code>:222-243</code>) is representative: stop the
+    timers, remember the outgoing caret, set path and text under a loading flag, restore the incoming
+    caret — with a comment explaining why the order matters. <code>SaveImplicitly</code> is the single
+    gate for every write the user did not ask for, and <code>FlushUnsavedAsync</code> is the single gate
+    for every path that moves off a dirty note; both are named for what they mean rather than what they
+    do. Mutation is confined to the service layer, and every mutation ends at one
+    <code>Invalidate()</code>.</p>
+  </div>
+</div>
+
+<h2 id="s12"><span class="num">12</span>Simplification Opportunities</h2><div class="rule"></div>
+
+<p>Ordered by value returned per unit of risk. Nothing below is a restructuring, and several findings in
+this report deliberately do <strong>not</strong> appear here — see the note at the end.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>#</th><th>Opportunity</th><th>Removes</th><th>Effort</th><th>Refs</th></tr></thead>
+  <tbody>
+    <tr><td>1</td>
+        <td>Route the autosave timer and the deactivate handler through the existing guard</td>
+        <td>A crash-barrier dialog for an ordinary disk failure, and the erosion of the one signal that
+            says a guard is missing</td>
+        <td>Minutes</td><td><a href="#f-h1">H1</a></td></tr>
+    <tr><td>2</td>
+        <td>Let an unreadable settings file fall back to defaults, as every other file read here already
+            does</td>
+        <td>A startup crash with no message and no discoverable recovery</td>
+        <td>Minutes</td><td><a href="#f-h2">H2</a></td></tr>
+    <tr><td>3</td>
+        <td>Move <code>PathScope</code>'s preconditions inside <code>PathScope</code></td>
+        <td>A contract stated in two callers and met by two of ten; a whole class of future caller error
+            in the app's only containment check</td>
+        <td>Small</td><td><a href="#f-m7">M7</a></td></tr>
+    <tr><td>4</td>
+        <td>Make the four comments true again: one <code>".md"</code>, one debounce constant, and honest
+            wording on the two "one place" claims</td>
+        <td>The repository's most valuable asset quietly misleading its readers</td>
+        <td>Small</td><td><a href="#f-m1">M1</a>, <a href="#f-m13">M13</a>, <a href="#f-l11">L11</a></td></tr>
+    <tr><td>5</td>
+        <td>Pick one route for a setting to take effect, and derive <code>SettingsViewModel.Open()</code>'s
+            re-read rather than enumerating it</td>
+        <td>The stale auto-save state across windows, and the most likely way to get the next setting
+            subtly wrong</td>
+        <td>Moderate</td><td><a href="#f-ca1">CA1</a></td></tr>
+    <tr><td>6</td>
+        <td>Give the quick switcher the debounce-and-cancel shape its two siblings already have, and fold
+            the query once instead of per comparison</td>
+        <td>A vault-sized scan per keystroke on the UI thread; the only as-you-type feature that does not
+            follow the documented pattern</td>
+        <td>Small</td><td><a href="#f-m4">M4</a></td></tr>
+    <tr><td>7</td>
+        <td>One source for each gesture string, read by the binding, the tooltip and the menu item</td>
+        <td>Three unlinked literals per command, and a UI that can advertise a dead shortcut with no
+            compile error</td>
+        <td>Small</td><td><a href="#f-ca2">CA2</a></td></tr>
+    <tr><td>8</td>
+        <td>State the filesystem error policy once, and apply it to <code>FolderOrderFile</code></td>
+        <td>Three policies and no rule for the fifth module</td>
+        <td>Small</td><td><a href="#f-m6">M6</a></td></tr>
+    <tr><td>9</td>
+        <td>Refer to the sidebar column by name rather than index, and keep its remembered width with the
+            other view state</td>
+        <td>A positional dependency on markup order that breaks silently, and one of two mechanisms for
+            the same job</td>
+        <td>Small</td><td><a href="#f-m5">M5</a></td></tr>
+    <tr><td>10</td>
+        <td>One relative-key-plus-exclusion predicate in <code>VaultService</code>, parameterised by which
+            ignore snapshot to use</td>
+        <td>The same rule written twice in one file, one copy hidden in a local function</td>
+        <td>Small</td><td><a href="#f-m10">M10</a></td></tr>
+    <tr><td>11</td>
+        <td>Turn nullable warnings into errors while the debt is still nine <code>!</code> operators</td>
+        <td>The gap between the discipline in the code and what the build enforces</td>
+        <td>Minutes</td><td>§10</td></tr>
+    <tr><td>12</td>
+        <td>A bound on <code>SingleInstance</code>'s retry loop, and a depth limit in
+            <code>SvgCssInliner</code>'s variable resolution</td>
+        <td>A busy-spin, and the one failure that bypasses the crash barrier entirely</td>
+        <td>Minutes</td><td><a href="#f-m9">M9</a>, <a href="#f-l6">L6</a></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="callout">
+  <p><b>Deliberately not recommended.</b> Merging the three LRUs — they differ in value type, disposal
+  and locking, and a forced abstraction would likely cost more than the duplication
+  (<a href="#f-m2">M2</a>). Merging the three tree flatteners as a standalone task
+  (<a href="#f-m11">M11</a>) — worth doing when one of them next changes, not before. Splitting
+  <code>VaultWorkspaceViewModel</code> or <code>VaultService</code> — both are large but cohesive, and
+  their size is documented as a decision. Replacing the ribbon Search button's event
+  (<a href="#f-l8">L8</a>) — the alternatives are worse. A sweep to tighten every over-public type
+  (<a href="#f-l12">L12</a>) — high churn, low return; do it opportunistically. And removing the
+  small duplications in <a href="#f-l3">L3</a> beyond the exception filter, which is the only one of them
+  that encodes a policy.</p>
+</div>
+
+<h2 id="s13"><span class="num">13</span>Areas Requiring Manual Verification</h2><div class="rule"></div>
+
+<p>Static reading cannot settle these. They are listed with what would settle them.</p>
+
+<div class="ev"><ul>
+  <li><strong>Whether a diagram bitmap can be disposed mid-frame.</strong>
+      <code>Views/Markdown/DiagramView.cs:81-85</code> calls <code>GetBitmap</code> from inside
+      <code>Render</code>; on a miss that goes through <code>Views/Markdown/Lru.cs:23-28</code>, which may
+      evict and <code>Dispose()</code> a different view's bitmap — possibly one already drawn this frame.
+      The comment at <code>DiagramView.cs:79-80</code> asserts Avalonia takes its own reference on the
+      recorded draw, and the surrounding design (the view keeps the key, never the bitmap) is clearly
+      built around that. This review did not verify the assertion against Avalonia 12.1.2.
+      <em>To settle it:</em> a document with more distinct diagrams than the 32-bitmap capacity,
+      scrolled, ideally with the capacity lowered to force the case.</li>
+  <li><strong>Whether <code>SidebarDragTests</code> actually fails if the Fluent theme renames
+      <code>PART_LayoutRoot</code>.</strong> <code>Views/Shell/Sidebar.axaml.cs:133-139</code> states that
+      the test is the tripwire for exactly that. Worth confirming it asserts rather than skips, since its
+      value is entirely in failing on a framework upgrade. <em>To settle it:</em> rename the constant
+      locally and check the test goes red.</li>
+  <li><strong>Whether the two Linux test failures are accepted policy or an open defect.</strong>
+      <a href="#f-m8">M8</a> describes the mechanism; what the intended cross-platform behaviour is, is a
+      product decision this review cannot make. <em>To settle it:</em> a decision, then a test that
+      encodes it.</li>
+  <li><strong>Whether view mode and sidebar visibility are meant to be per-window.</strong>
+      <code>ViewModels/MainViewModel.cs:77-85</code> reads <code>ViewMode</code> once at construction and
+      writes it back at <code>:176-180</code>, so a second window keeps its own until restart. That reads
+      as intentional — unlike the theme, which is explicitly app-wide — but nothing states it, and
+      <a href="#f-ca1">CA1</a> shows the same gap producing an unintended result for auto-save.
+      <em>To settle it:</em> confirm the intent and write it next to the <code>_loading</code> flag.</li>
+  <li><strong>Real-world behaviour of the content-cache budget.</strong>
+      <code>Services/NoteContentCache.cs:23-28</code> is precise about what happens past 32M characters —
+      graceful degradation to re-reading — and <code>ScanBenchmark</code> exists to observe it, but it is
+      gated behind <code>MDNOTES_BENCH=1</code> and was not run here.
+      <em>To settle it:</em> run the benchmark against a vault larger than roughly twelve thousand
+      notes.</li>
+</ul></div>
+
+<h2 id="s14"><span class="num">14</span>Overall Maintainability Assessment</h2><div class="rule"></div>
+
+<p>Ask the question the brief sets: <em>does this actually make the repository harder to understand,
+change, test or debug?</em> For most of MdNotes the answer is no, and that should be the first
+conclusion rather than a hedge at the end of a list.</p>
+
+<p><strong>Understanding it is easy.</strong> The layering is legible, the names say what things are,
+and the comments carry the reasoning. A reader landing in an unfamiliar file learns not just what the
+code does but what it replaced and why. That is rare, and it is the property most worth protecting.</p>
+
+<p><strong>Testing it is easy, and demonstrably so.</strong> Rules are extracted into pure functions on
+purpose, with the purpose stated. Services sit behind interfaces because tests substitute them, and the
+fakes are built to make silence fail. Whole windows run headless. The 51 test files are not a formality.</p>
+
+<p><strong>Changing it is mostly easy, with one real exception.</strong> Adding a service costs one line
+because the project fixed that. Adding an overlay is cheap because the project fixed that too. Adding a
+command is tolerable. Adding a setting is the outlier — eight edits and a choice between four
+undocumented propagation routes, one of which has already been chosen wrong in a way that shows up only
+with two windows open. That is the one place the codebase has not yet applied its own lesson.</p>
+
+<p><strong>Debugging it is the weakest axis.</strong> Not because the code is opaque, but because nothing
+is recorded. Twenty-two catch blocks, none of which log; two that say nothing at all. When a user reports
+that exclusions stopped applying or that a second launch opened a second copy of the app, there is no
+evidence to ask for. That is a defensible trade for a local, private notes app — it is listed as a
+trade-off rather than a defect — but it is the reason several findings here are hard to confirm from the
+outside.</p>
+
+<h3>The pattern worth taking away</h3>
+
+<p>Four separate findings share one shape: <strong>a comment asserts single-sourcing that the code no
+longer provides</strong>. <em>"The one place that decides"</em> above the first of four
+<code>".md"</code> declarations. <em>"The one place that answers it"</em> above one of three title
+fallbacks. <em>"The interval the other two timers use"</em> above three unlinked literals. A
+precondition explained in one caller and honoured by no other. In a codebase where comments are the
+primary way knowledge is transferred, these are not cosmetic. They are the mechanism by which a good
+practice — writing down the reasoning — decays into a misleading one, because the reader who trusts the
+comment stops checking. Every one of them is a sentence or a constant away from being true again.</p>
+
+<p>The second pattern is milder: <strong>four caches, three error policies, two column mechanisms, two
+name-matching rules, four settings routes</strong>. None is wrong. Each was a reasonable local answer.
+Collectively they mean several ordinary questions have more than one answer here, and a new contributor
+has to read all of them to know which to copy.</p>
+
+<h3>Direction</h3>
+
+<p>Roughly a day of work covers the top of §12: two guards, one try/catch, one constant, one helper
+tightened, and four comments made true. That closes both High findings, the most safety-relevant Medium,
+and the decay pattern above. The settings pipeline is a separate, larger decision and is the only item
+here that warrants planning rather than just doing.</p>
+
+<p>Nothing in this review argues for restructuring. The architecture is not the problem, the file sizes
+are not the problem, and the abstractions that exist have earned their place. What is worth defending is
+the comment culture and the test seams — they are why this review could be specific, and they are what
+the findings above are mostly in service of keeping accurate.</p>
+
+<h2 id="summary"><span class="num">15</span>Summary Table</h2><div class="rule"></div>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Finding</th><th>Location</th><th>Consequence</th><th>Severity</th><th>Confidence</th></tr></thead>
+  <tbody>
+    <tr><td><a href="#f-h1">H1</a> Autosave and deactivate bypass the error guard</td>
+        <td class="loc">EditorViewModel.cs:83<br>MainWindow.axaml.cs:80</td>
+        <td>An ordinary disk failure is reported as an unexpected crash, eroding the signal that detects
+            missing guards</td>
+        <td class="sev sev-high">High</td><td>High</td></tr>
+    <tr><td><a href="#f-h2">H2</a> Corrupt <code>settings.json</code> crashes startup</td>
+        <td class="loc">JsonSettingsService.cs:31-33<br>AppSession.cs:17</td>
+        <td>App will not start, with no message and no discoverable recovery; no test file exists</td>
+        <td class="sev sev-high">High</td><td>High</td></tr>
+    <tr><td><a href="#f-m1">M1</a> <code>".md"</code> declared 4× under a "one place" comment</td>
+        <td class="loc">VaultWalk.cs:18 +3<br>EditorViewModel.cs:204-207</td>
+        <td>A second extension means four declarations, two helpers and a magic <code>3</code> that fails
+            silently</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m2">M2</a> Four caches, four eviction policies</td>
+        <td class="loc">Lru.cs:25<br>NotePositions.cs:42</td>
+        <td>One question, four answers; documented reasoning applied only where it was written</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m3">M3</a> Undo skips Replace's disk-changed check</td>
+        <td class="loc">ReplaceService.cs:74-78</td>
+        <td>Mirror operations enforce opposite rules with nothing saying why</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m4">M4</a> Quick switcher rescans the vault per keystroke</td>
+        <td class="loc">QuickSwitcherViewModel.cs:78-124<br>NameMatch.cs:32-33</td>
+        <td>~10 000 redundant folds per keystroke on the UI thread; the only as-you-type scan that skips
+            the documented pattern</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m5">M5</a> Two mechanisms size one window's columns</td>
+        <td class="loc">MainWindow.axaml.cs:54-75<br>MainViewModel.cs:46-47</td>
+        <td>Positional index into markup breaks silently if a column is inserted; 260 stated 3×</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m6">M6</a> Three filesystem error policies, one undocumented</td>
+        <td class="loc">FolderOrderFile.cs:34-55<br>vs IgnoreFile / VaultWalk</td>
+        <td>A completed move can raise an error dialog; no rule for the next module</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m7">M7</a> <code>PathScope</code> preconditions live in 2 of 10 callers</td>
+        <td class="loc">PathScope.cs:7-9<br>NoteImagePath.cs:18-20</td>
+        <td>The only containment check in the app; a root-level vault makes every note a loose file</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m8">M8</a> Platform-dependent name validation</td>
+        <td class="loc">VaultService.cs:476</td>
+        <td>Notes creatable on Linux cannot exist on Windows; suite permanently red on Linux</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m9">M9</a> Single-instance listener dies silently or spins</td>
+        <td class="loc">SingleInstance.cs:51,71</td>
+        <td>Feature silently lost for the session, or a busy-spinning background thread</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m10">M10</a> Exclusion test written twice in one file</td>
+        <td class="loc">VaultService.cs:452-458, 514-518</td>
+        <td>How a vault-relative key is formed has two implementations 60 lines apart</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m11">M11</a> Three tree flatteners, three label builders</td>
+        <td class="loc">VaultWalk.cs:109<br>QuickSwitcher:129 · SearchReplace:321</td>
+        <td>A user-visible label format with two places to change and no test linking them</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m12">M12</a> Two rules for "does this name match"</td>
+        <td class="loc">SearchService.cs:32-34<br>QuickSwitcherViewModel.cs:105</td>
+        <td>The replace overlay is seeded from the sidebar box but can report a different hit set</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m13">M13</a> Three debounce literals under a comment claiming one decision</td>
+        <td class="loc">VaultWorkspaceViewModel.cs:42-44<br>EditorViewModel.cs:15 · SearchReplace:21</td>
+        <td>The comment becomes false the first time one is tuned, and it is the only record</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m14">M14</a> Three-valued result flattened, then re-derived by a second read</td>
+        <td class="loc">IgnoreFile.cs:13-16,32<br>VaultIgnoreService.cs:16</td>
+        <td>Panel text and its status line come from separate reads; a failed save signals nothing</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-m15">M15</a> Two <code>async void</code> handlers do unguarded work</td>
+        <td class="loc">Sidebar.axaml.cs:62-80<br>MainWindow.axaml.cs:95-99</td>
+        <td>Crash-barrier wording for a failed drag, or after a save that already succeeded</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-ca1">CA1</a> One setting = 8 edits + 4 undocumented propagation routes</td>
+        <td class="loc">SettingsViewModel.cs:152-164<br>JsonSettingsService.cs:10-127</td>
+        <td>Auto-save state already goes stale across windows; the re-read list grows one forgettable
+            line per setting</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-ca2">CA2</a> Gesture text written three times per command</td>
+        <td class="loc">MainWindow.axaml:21<br>Sidebar.axaml:52, 76</td>
+        <td>The UI can advertise a shortcut that no longer works, with no compile error</td>
+        <td class="sev sev-med">Medium</td><td>High</td></tr>
+    <tr><td><a href="#f-ca3">CA3</a> Overlay teardown obligation is unenforced</td>
+        <td class="loc">VaultWorkspaceViewModel.cs:149</td>
+        <td>A future overlay owning a timer can leak it with nothing to notice</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l1">L1</a> Four files use a different idiom from their surroundings</td>
+        <td class="loc">MainWindow.axaml.cs<br>QuickSwitcher · EditorVM:200-218 · BlockRenderer:64-115</td>
+        <td>Comments restate the code, so attention is spent on nothing; these regions hold several other
+            findings</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l2">L2</a> Nullable field + flag encoding one either-or</td>
+        <td class="loc">QuickSwitcherViewModel.cs:25,71</td>
+        <td><code>!</code> turns a compile error into a possible NRE on Enter</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l3">L3</a> Cluster of near-duplicate helpers</td>
+        <td class="loc">SearchReplace:332 · Settings:128<br>IgnoreFile:79 · NoteTemplateService:64</td>
+        <td>The duplicated exception filter defines which IO failures are "expected"; the pluralisers
+            already disagree</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l4">L4</a> Pure forwarding layer on <code>MainViewModel</code></td>
+        <td class="loc">MainViewModel.cs:119-125</td>
+        <td>Three duplicated doc comments to keep in step; one extra hop when tracing startup</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l5">L5</a> <code>PropertyChanged</code> raised for a non-existent property</td>
+        <td class="loc">JsonSettingsService.cs:41-45</td>
+        <td>Notification contract is untrue; a trap for a future subscriber with a default branch</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l6">L6</a> Unbounded recursion in CSS variable resolution</td>
+        <td class="loc">SvgCssInliner.cs:35-39, 91-97</td>
+        <td>A cyclic variable is a stack overflow — the one failure that bypasses the crash barrier</td>
+        <td class="sev sev-low">Low</td><td>Medium</td></tr>
+    <tr><td><a href="#f-l7">L7</a> One case-sensitive path comparison among nine</td>
+        <td class="loc">VaultService.cs:46</td>
+        <td>On Windows, different casing rebuilds watchers and resets tree, search and undo in every
+            window</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l8">L8</a> One ribbon button uses an event, seven use commands</td>
+        <td class="loc">Ribbon.axaml.cs:7,12<br>MainWindow.axaml.cs:16-23</td>
+        <td>Three-file detour for one of eight identical-looking buttons; no command to find in the XAML</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l9">L9</a> One culture-sensitive sort among ordinal ordering</td>
+        <td class="loc">QuickSwitcherViewModel.cs:94</td>
+        <td>Switcher and sidebar order the same notes differently, and only in some locales</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l10">L10</a> Separator normalisation spelled two non-equivalent ways</td>
+        <td class="loc">VaultService.cs:433,516<br>ReplaceService.cs:37</td>
+        <td>Same-looking idiom, different behaviour on Linux; reads as though one is a mistake</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l11">L11</a> "Title else file name" in three places under a "one place" comment</td>
+        <td class="loc">VaultService.cs:130-137<br>VaultEntry.cs:17 · EditorViewModel.cs:198</td>
+        <td>The least accurate of the three is the one a reader finds first</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l12">L12</a> Service layer <code>public</code> for an <code>internal</code> root</td>
+        <td class="loc">9 services + several members<br>NotePositions.Count: 0 callers</td>
+        <td>"Who can call this?" is harder than it is; local changes read as contract changes</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l13">L13</a> Theme resource keys as bare strings</td>
+        <td class="loc">BlockRenderer · InlineRenderer<br>MarkdownView (~20 literals)</td>
+        <td>A renamed key degrades silently to a wrong colour in one theme; no warning, no test</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l14">L14</a> No logging; 22 catches, 0 logged, 0 rethrown</td>
+        <td class="loc">whole tree</td>
+        <td>Defensible privacy trade-off, but user-reported failures leave no evidence to ask for</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l15">L15</a> Hardcoded lengths beside the literals they measure</td>
+        <td class="loc">EditorViewModel.cs:204-207<br>NoteTitle.cs:45,48 · SvgCssInliner.cs:35,91,93</td>
+        <td>Changing the literal mis-slices rather than failing</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+    <tr><td><a href="#f-l16">L16</a> Duplicated state synced by hand</td>
+        <td class="loc">SearchReplaceViewModel.cs:26,45<br>MatchFinder.cs:17,89</td>
+        <td>A fact the compiler could hold, held by a convention every future edit must honour</td>
+        <td class="sev sev-low">Low</td><td>High</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p style="font-size:.85rem;color:var(--ink-2)">No numeric score is assigned, by design. Severity reflects
+the cost to understanding, changing, testing or debugging the code — not a weighting to be summed.</p>
+
+<footer>
+  <p><strong>MdNotes — Code Quality &amp; Maintainability Review.</strong> Read-only analysis of the
+  working tree at <code>89d3067</code>, 2026-09-21. 79 production files read in full, plus three
+  cross-cutting sweeps and one baseline test run. No source, test, configuration or dependency file was
+  modified; this report is the only artefact produced.</p>
+  <p>Architecture and performance are covered by the separate reports in this folder. Data-loss analysis
+  belongs to the Data Safety Review; findings here touching user documents
+  (<a href="#f-h1">H1</a>, <a href="#f-m3">M3</a>, <a href="#f-m8">M8</a>) are reported for their
+  implementation-quality consequences only.</p>
+</footer>
+
+</div>
+</body>
+</html>

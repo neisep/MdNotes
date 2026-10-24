@@ -1,0 +1,163 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:MdNotes.Views.Shell"
+             xmlns:vm="using:MdNotes.ViewModels"
+             x:Class="MdNotes.Views.Shell.SearchReplace"
+             x:DataType="vm:SearchReplaceViewModel">
+
+    <!-- Named: the result rows reach past their item DataContext to the view model through it. -->
+    <DockPanel x:Name="Root">
+        <!-- Find, with the match options inside the box -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="64,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Find" FontSize="13" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <TextBox x:Name="FindBox" shell:ModalOverlay.InitialFocus="True" Grid.Column="1" Classes="search"
+                     Text="{Binding Find}" PlaceholderText="Text to find across the vault…">
+                <TextBox.InnerRightContent>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,4,0">
+                        <ToggleButton Classes="option" IsChecked="{Binding MatchCase}"
+                                      ToolTip.Tip="Match case">
+                            <TextBlock Text="Aa" />
+                        </ToggleButton>
+                        <ToggleButton Classes="option" IsChecked="{Binding WholeWord}"
+                                      ToolTip.Tip="Whole word">
+                            <TextBlock Text="ab" TextDecorations="Underline" />
+                        </ToggleButton>
+                        <ToggleButton Classes="option" IsChecked="{Binding UseRegex}"
+                                      ToolTip.Tip="Regular expression ($1 in the replacement is a group)">
+                            <TextBlock Text=".*" />
+                        </ToggleButton>
+                    </StackPanel>
+                </TextBox.InnerRightContent>
+            </TextBox>
+        </Grid>
+
+        <!-- Replacement -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="64,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="Replace" FontSize="13" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <TextBox Grid.Column="1" Classes="search" Text="{Binding Replacement}"
+                     PlaceholderText="Replace with…" />
+        </Grid>
+
+        <!-- Scope -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="64,*" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Text="In" FontSize="13" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <ComboBox Grid.Column="1" HorizontalAlignment="Left" MinWidth="260" FontSize="13"
+                      ItemsSource="{Binding Folders}" SelectedItem="{Binding Scope}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SearchReplaceViewModel+ScopeItem">
+                        <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </Grid>
+
+        <!-- Pattern errors, in place rather than in a dialog -->
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" FontSize="12" TextWrapping="Wrap"
+                   Margin="64,0,0,6" Foreground="{DynamicResource MdError}"
+                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <!-- Footer -->
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+            <TextBlock Grid.Column="0" Text="{Binding Status}" FontSize="12" VerticalAlignment="Center"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Content="Undo replace" MinWidth="88" CornerRadius="6"
+                        Command="{Binding UndoReplaceCommand}" IsEnabled="{Binding CanUndo}"
+                        ToolTip.Tip="Put back every note the last replace changed" />
+                <Button Content="Close" MinWidth="88" CornerRadius="6"
+                        Command="{Binding CloseCommand}" />
+                <Button Content="Replace all" MinWidth="88" CornerRadius="6" Classes="primary"
+                        Command="{Binding ReplaceAllCommand}" IsEnabled="{Binding CanReplace}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Results: one block per note, its matches beneath it. Virtualised by note: the ScrollViewer
+             lives inside the template so the panel knows its viewport, and only the notes on screen
+             get containers. A vault-wide replace can list thousands of notes; it is not capped,
+             because "Replace all" acts on everything listed. -->
+        <ItemsControl ItemsSource="{Binding Results}" Margin="0,4,0,0">
+            <ItemsControl.Template>
+                <ControlTemplate>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </ScrollViewer>
+                </ControlTemplate>
+            </ItemsControl.Template>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:NoteResultViewModel">
+                    <StackPanel Margin="0,0,0,4">
+                        <!-- Note row -->
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="26">
+                            <!-- Indeterminate is shown when only some matches are ticked,
+                                 but it is not a state the user can click into. -->
+                            <CheckBox Grid.Column="0" MinWidth="0"
+                                      Margin="0,0,2,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding IsSelected}" />
+                            <ToggleButton Grid.Column="1" Classes="expander" Width="20" Height="20"
+                                          Margin="0,0,4,0" VerticalAlignment="Center"
+                                          IsChecked="{Binding IsExpanded}">
+                                <Path Classes="icon" Width="12" Height="12"
+                                      Data="{StaticResource Icon.chevron-down}" />
+                            </ToggleButton>
+                            <Button Grid.Column="2" HorizontalAlignment="Left" Padding="2,0"
+                                    Background="Transparent" BorderThickness="0" CornerRadius="4"
+                                    ToolTip.Tip="Open this note"
+                                    CommandParameter="{Binding}"
+                                    Command="{Binding #Root.((vm:SearchReplaceViewModel)DataContext).OpenNoteCommand}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Folder}" FontSize="12"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MdTextMuted}" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Grid.Column="3" Text="{Binding Count}" FontSize="12"
+                                       VerticalAlignment="Center" Margin="8,0,4,0"
+                                       Foreground="{DynamicResource MdTextMuted}" />
+                        </Grid>
+
+                        <!-- Match rows -->
+                        <ItemsControl ItemsSource="{Binding Matches}" IsVisible="{Binding IsExpanded}"
+                                      Margin="22,0,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MatchViewModel">
+                                    <Grid ColumnDefinitions="Auto,Auto,*" MinHeight="24">
+                                        <CheckBox Grid.Column="0" MinWidth="0" Margin="0,0,2,0"
+                                                  VerticalAlignment="Center"
+                                                  IsChecked="{Binding IsSelected}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding LineNumber}"
+                                                   FontSize="12" Width="36" TextAlignment="Right"
+                                                   Margin="0,0,10,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource MdTextFaint}" />
+                                        <TextBlock Grid.Column="2" FontSize="12" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource MdTextMuted}">
+                                            <TextBlock.Inlines>
+                                                <Run Text="{Binding Prefix}" />
+                                                <Run Text="{Binding Found}"
+                                                     TextDecorations="Strikethrough" />
+                                                <Run Text="{Binding Replacement}"
+                                                     Foreground="{DynamicResource MdAccent}" />
+                                                <Run Text="{Binding Suffix}" />
+                                            </TextBlock.Inlines>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </DockPanel>
+
+</UserControl>

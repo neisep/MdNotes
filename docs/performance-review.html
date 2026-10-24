@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MdNotes Performance Review</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --border: #d0d7de; --surface: #f6f8fa;
+    --link: #0969da; --high: #cf222e; --medium: #bf8700; --low: #1a7f37; --good: #0969da;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --border: #3d444d; --surface: #161b22;
+      --link: #4493f8; --high: #ff7b72; --medium: #d29922; --low: #3fb950; --good: #4493f8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 16px 64px; background: var(--bg); color: var(--fg);
+         font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 32px 0 8px; }
+  h2 { font-size: 20px; margin: 40px 0 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  h3 { font-size: 16px; margin: 28px 0 8px; }
+  p { margin: 6px 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font: 13px/1.4 Consolas, "Cascadia Code", Menlo, monospace; background: var(--surface);
+         padding: 1px 5px; border-radius: 4px; }
+  .lead { color: var(--muted); margin-bottom: 16px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--surface); }
+  .toc ol { padding-left: 22px; margin: 6px 0; }
+  .toc li { margin: 3px 0; }
+  .finding { border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
+  .finding h3 { margin: 0 0 8px; }
+  .meta { display: grid; grid-template-columns: 90px 1fr; gap: 2px 12px; font-size: 14px; margin-bottom: 10px; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  .sev { display: inline-block; font-weight: 600; font-size: 12px; padding: 1px 8px; border-radius: 10px;
+         border: 1px solid currentColor; }
+  .sev.high { color: var(--high); } .sev.medium { color: var(--medium); } .sev.low { color: var(--low); }
+  .st { display: inline-block; font-weight: 600; font-size: 12px; padding: 1px 8px; border-radius: 10px;
+        border: 1px dashed currentColor; color: var(--muted); }
+  .st.wip { border-style: solid; color: var(--medium); }
+  .st.done { border-style: solid; color: var(--low); }
+  .st.na { border-style: dotted; color: var(--muted); }
+  .status { border-left: 3px solid var(--low); background: var(--surface); padding: 8px 12px;
+            margin: 10px 0 0; border-radius: 0 6px 6px 0; font-size: 14px; }
+  .status.wip { border-left-color: var(--medium); }
+  .status .lbl { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .03em;
+                 color: var(--muted); margin-bottom: 4px; }
+  .status p { margin: 4px 0; }
+  .impl td:first-child { white-space: nowrap; }
+  .impl td:nth-child(3) { white-space: nowrap; }
+  .block { margin: 8px 0; }
+  .block b { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .good li { margin: 6px 0; }
+  .top { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>MdNotes Performance Review</h1>
+<p class="lead">Read-only review of the <code>MdNotes</code> .NET 10 / Avalonia 12 desktop app. Scope: allocations, hot-path LINQ, repeated I/O, UI-thread blocking, caching and object lifetime. Architecture was not reviewed and no source was changed.</p>
+
+<h2 id="summary">Summary</h2>
+<p>The codebase is already deliberate about performance: one cached vault walk feeds the tree, the switcher and the search; note text is cached by write stamp; every keystroke-driven path is debounced; the preview's image and diagram caches are bounded and disposed. No blocking <code>.Result</code> or <code>.Wait()</code> calls exist and there is no logging in hot paths.</p>
+<p>The remaining cost centres are concentrated in three places: the <strong>vault-wide search and replace scan</strong> (synchronous disk I/O on the UI thread, a folded copy of every note per scan, and extra file stats hidden behind a lookup), the <strong>preview rebuild</strong> (rebuilt even while hidden, per-run dynamic resource bindings, full-resolution image decode), and a few <strong>per-pointer-move tree walks</strong> in the sidebar drag path.</p>
+<table>
+  <tr><th>Severity</th><th>Count</th><th>Themes</th></tr>
+  <tr><td><span class="sev high">High</span></td><td>3</td><td>UI-thread blocking scans, redundant per-note stats, whole-vault string copies</td></tr>
+  <tr><td><span class="sev medium">Medium</span></td><td>11</td><td>Cache eviction cost, switcher ranking, drag tree walks, preview rebuild and rendering, SVG inlining</td></tr>
+  <tr><td><span class="sev low">Low</span></td><td>7</td><td>Small allocations per call, startup delay, settings writes, retained snapshots</td></tr>
+</table>
+<p class="top">Re-read against the working tree on 2026-09-22: findings <a href="#f1">1</a> and <a href="#f4">4</a> had already been implemented in <code>89d3067</code> and are marked Done below; finding <a href="#f21">21</a> was added during that audit. The other eighteen were confirmed still open in source.</p>
+
+<h2 id="impl">Implementation status</h2>
+<p>Twenty-one findings, all closed (2026-10-03), split into fourteen tasks in <code>todos.md</code> (tasks 52&ndash;65), the repo's task log. Task 52 is the baseline the measure-first tasks were waiting on, and its numbers are in <a href="#baseline">Baseline measurements</a>. <strong>This table and the <em>Status</em> row on each finding are updated as work starts and lands</strong>, so this page stays the record of what has actually been done. A finished finding also gains a closing <em>Status</em> note saying what changed and what was measured.</p>
+<p class="top">Legend: <span class="st todo">Not started</span> &middot;
+<span class="st wip">In progress</span> &middot;
+<span class="st done">Done</span> &middot;
+<span class="st na">Won't do</span> (measured, not worth it &mdash; the note says why).</p>
+<table class="impl">
+  <tr><th>Task</th><th>Work</th><th>Findings</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>&mdash;</td><td>Scans off the UI thread, O(1) cache eviction</td><td>1, 4</td><td><span class="st done">Done</span></td><td>Landed in <code>89d3067</code></td></tr>
+  <tr><td>52</td><td>Baseline: extend <code>ScanBenchmark</code>, add micro-benchmarks</td><td>&mdash;</td><td><span class="st done">Done</span></td><td><a href="#baseline">Numbers here</a>. Gate lifted for 5, 6, 12, 18; 8 was settled by an A/B benchmark instead of a call tree (task 58)</td></tr>
+  <tr><td>53</td><td>Display names from one snapshot</td><td>2</td><td><span class="st done">Done</span></td><td>One exclusion check per search, not one per note</td></tr>
+  <tr><td>54</td><td>Fold once, index lines lazily</td><td>3</td><td><span class="st done">Done</span></td><td>29.9 &rarr; 2.0 MB per keystroke on 5,000 notes</td></tr>
+  <tr><td>55</td><td>Allocation one-liners</td><td>9, 10, 14, 19</td><td><span class="st done">Done</span></td><td>Inline: 5,267 &rarr; 195 KB on the 13-node SVG</td></tr>
+  <tr><td>56</td><td>Decode images at display width</td><td>11</td><td><span class="st done">Done</span></td><td>12 MP photo: ~48 MB &rarr; 1.9 MB at 1&times;, 7.7 MB at 2&times;</td></tr>
+  <tr><td>57</td><td>No preview rebuild while hidden</td><td>7</td><td><span class="st done">Done</span></td><td>Hidden preview builds nothing; one rebuild on show</td></tr>
+  <tr><td>58</td><td>Resolved brushes, not DynamicResource</td><td>8</td><td><span class="st done">Done</span></td><td>100 KB rebuild 58.4 &rarr; 48.3 ms, 18.9 &rarr; 16.3 MB</td></tr>
+  <tr><td>59</td><td>Mermaid render off the UI thread</td><td>12</td><td><span class="st done">Done</span></td><td>Edited diagrams render off the UI thread; typed-past states disposed</td></tr>
+  <tr><td>60</td><td>Swap result collections in one step</td><td>13, 20</td><td><span class="st done">Done</span></td><td>Wholesale swaps, virtualised overlay, incremental totals</td></tr>
+  <tr><td>61</td><td>Quick switcher: cache and bound the ranking</td><td>5</td><td><span class="st done">Done</span></td><td>Broad keystroke 664 &rarr; 8.8 KB; narrow 560 B</td></tr>
+  <tr><td>62</td><td>Drag path: parent links and a path index</td><td>6</td><td><span class="st done">Done</span></td><td>Lookup 88 &micro;s / 107 KB &rarr; 38 ns / 0 B on 5,000 notes</td></tr>
+  <tr><td>63</td><td>Coalesce watcher storms, skip the pipe wait</td><td>15, 16</td><td><span class="st done">Done</span></td><td>One post per burst; cold start skips the 300 ms connect</td></tr>
+  <tr><td>64</td><td>Settings source-gen and a single vault walk</td><td>17, 18</td><td><span class="st done">Done</span></td><td>Settings source-gen (&minus;11 ms startup); one directory read per folder</td></tr>
+  <tr><td>65</td><td>Async walk when the cache is at budget</td><td>21</td><td><span class="st done">Done</span></td><td>Post-edit walk goes async once the cache has overrun</td></tr>
+</table>
+
+<h2 id="toc">Contents</h2>
+<div class="toc">
+<ol>
+  <li><a href="#f1">Vault-wide scans run synchronously on the UI thread</a> <span class="top">High</span></li>
+  <li><a href="#f2">DisplayName stats the ignore files once per note per search</a> <span class="top">High</span></li>
+  <li><a href="#f3">A folded copy of every note is allocated on every scan</a> <span class="top">High</span></li>
+  <li><a href="#f4">Content cache eviction is O(n) per evicted entry and thrashes on large vaults</a> <span class="top">Medium</span></li>
+  <li><a href="#f5">Quick switcher re-flattens and re-ranks the whole vault per keystroke</a> <span class="top">Medium</span></li>
+  <li><a href="#f6">Drag-over walks the whole tree twice per pointer move</a> <span class="top">Medium</span></li>
+  <li><a href="#f7">Preview is rebuilt while hidden in Edit-only mode</a> <span class="top">Medium</span></li>
+  <li><a href="#f8">Per-run DynamicResource bindings although the preview rebuilds on theme change</a> <span class="top">Medium</span></li>
+  <li><a href="#f9">Word count allocates a MatchCollection on every preview tick</a> <span class="top">Medium</span></li>
+  <li><a href="#f10">SvgCssInliner rebuilds the whole SVG string per <code>var()</code></a> <span class="top">Medium</span></li>
+  <li><a href="#f11">Note images are decoded at full resolution and held for two builds</a> <span class="top">Medium</span></li>
+  <li><a href="#f12">Mermaid renders synchronously per keystroke inside a fence</a> <span class="top">Medium</span></li>
+  <li><a href="#f13">Bound ObservableCollections are filled one item at a time</a> <span class="top">Medium</span></li>
+  <li><a href="#f14">PathScope.IsSameOrUnder allocates a string per call</a> <span class="top">Low</span></li>
+  <li><a href="#f15">Watcher storms post one dispatcher closure per event per window</a> <span class="top">Low</span></li>
+  <li><a href="#f16">Every fresh launch waits on the named-pipe connect timeout</a> <span class="top">Low</span></li>
+  <li><a href="#f17">Settings are reflection-serialized and written synchronously per change</a> <span class="top">Low</span></li>
+  <li><a href="#f18">Vault walk does a per-folder stat and allocates two records per entry</a> <span class="top">Low</span></li>
+  <li><a href="#f19">Replace overlay retains the undo snapshot and exclusions indefinitely</a> <span class="top">Low</span></li>
+  <li><a href="#f20">Selection changes walk every match in the results</a> <span class="top">Low</span></li>
+  <li><a href="#f21">A post-mutation tree walk re-reads the vault once the content cache is at budget</a> <span class="top">Medium</span></li>
+  <li><a href="#impl">Implementation status</a> <span class="top">tracker</span></li>
+  <li><a href="#good">Good practices</a></li>
+  <li><a href="#baseline">Baseline measurements</a> <span class="top">task 52</span></li>
+  <li><a href="#profiling">Profiling and benchmarking recommendations</a></li>
+  <li><a href="#closing">Priorities</a></li>
+</ol>
+</div>
+
+<h2 id="findings">Findings</h2>
+
+<section class="finding" id="f1">
+<h3>1. Vault-wide scans run synchronously on the UI thread</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev high">High</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/VaultWorkspaceViewModel.cs</code>, <code>MdNotes/ViewModels/SearchReplaceViewModel.cs</code>, <code>MdNotes/Services/VaultService.cs</code></dd>
+  <dt>Location</dt><dd><code>VaultWorkspaceViewModel.RunSearch</code> (431-441), <code>SearchReplaceViewModel.Rescan</code> (98-132), <code>VaultService.CurrentSnapshot</code> (375-410) via <code>RefreshTree</code></dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; commit <code>89d3067</code></dd>
+</dl>
+<div class="block"><b>Problem</b>Sidebar search, the replace rescan, and the tree walk (which reads the head of every note when <code>UseNoteTitles</code> is on) all execute on the UI thread from <code>DispatcherTimer</code> ticks. The first scan after opening a vault, or after an external tool touches many files, reads every note from disk on the UI thread.</div>
+<div class="block"><b>Impact</b>The window freezes for the duration of the scan. The debounce limits how often this happens, not how long each occurrence takes. It scales with vault size and disk latency (network drives, OneDrive placeholders).</div>
+<div class="block"><b>Recommendation</b>Run <code>ISearchService.Search</code> and <code>ReplaceService.Find</code> on the thread pool with a <code>CancellationToken</code> that the next keystroke cancels, and marshal results back. This needs a lock (or a per-scan copy) around <code>NoteContentCache</code>, which currently relies on being UI-thread-only. Verify the freeze length with a Stopwatch on a large vault first; for small local vaults the current design may be adequate.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-09-22</span>
+  <p><strong>Done</strong> in <code>89d3067</code> (<em>fix: review performance</em>), on both halves. The unbounded walks &mdash; opening a vault and the watcher firing &mdash; go through <code>RefreshTreeAsync</code> &rarr; <code>WalkAsync</code> &rarr; <code>Task.Run(_vault.GetTree)</code>, with a generation counter so a walk overtaken by a newer one drops its answer instead of writing it to the tree. <code>ISearchService.Search</code> and the replace rescan run under <code>Task.Run</code> with a <code>CancellationTokenSource</code> the next keystroke cancels, and <code>NoteContentCache</code> took the lock that made this safe.</p>
+  <p>Measured, and recorded in the source rather than here: the titled walk cost <strong>244 ms over two thousand notes and 559 ms over five thousand</strong>, which is what settled the question this finding said to settle first. <code>MdNotes.Tests/ScanBenchmark.cs</code> is the harness, skipped unless <code>MDNOTES_BENCH=1</code>.</p>
+  <p><strong>One path stayed synchronous on purpose.</strong> <code>RefreshTree</code> still runs on the UI thread at the call sites where the user just created, renamed, deleted or moved one entry, because the content cache holds every other note's head and the walk is therefore one disk read. That argument holds only while the cache is under budget &mdash; see finding 21.</p>
+</div>
+</section>
+
+<section class="finding" id="f2">
+<h3>2. DisplayName stats the ignore files once per note per search</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev high">High</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/SearchService.cs</code>, <code>MdNotes/Services/VaultService.cs</code></dd>
+  <dt>Location</dt><dd><code>SearchService.Search</code> line 20; <code>VaultService.DisplayName</code> (134-137) → <code>CurrentSnapshot</code> (375-410) → <code>CurrentIgnore</code> (344-359) → <code>IgnoreFile.StampOf</code></dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 53</dd>
+</dl>
+<div class="block"><b>Problem</b><code>DisplayName</code> goes through <code>CurrentSnapshot</code>, which calls <code>CurrentIgnore</code>, which stats <code>.mdnotesignore</code> (and <code>.gitignore</code> when enabled) on every call. <code>Search</code> calls it once per note, so a scan performs one or two extra file stats per note on top of the content cache's own stat. The comment on <code>CurrentIgnore</code> says "one stat per enumeration", which holds for <code>GetNotes</code> but not for this per-note path.</div>
+<div class="block"><b>Impact</b>Two to three metadata syscalls per note per scan instead of one. On a few thousand notes this is tens of thousands of stats per debounce tick, in the same UI-thread window as finding 1.</div>
+<div class="block"><b>Recommendation</b>In <code>Search</code>, take the snapshot once (e.g. expose <code>IReadOnlyDictionary&lt;string,string&gt; Displays</code> or a <code>DisplayNames()</code> accessor on <code>VaultService</code>) and look names up from it. Alternatively make <code>DisplayName</code> use the last published snapshot without re-checking the ignore stamp.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+  <p><strong>Done.</strong> <code>VaultService.GetNamedNotes()</code> returns every note with its display name from a single snapshot, and <code>Search</code> iterates that rather than calling <code>DisplayName</code> per note. <code>DisplayName</code> and the new method share one lookup, so the title-or-file-name fallback is still defined once. Safe on the thread pool because a published snapshot is never written again.</p>
+  <p>Tested without a product seam: <code>CurrentIgnore</code> reads <code>UseGitIgnore</code> once per stat, so the settings fake counts the checks. One search now makes <strong>one</strong> check, where it made one plus one per note.</p>
+</div>
+</section>
+
+<section class="finding" id="f3">
+<h3>3. A folded copy of every note is allocated on every scan</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev high">High</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/SearchService.cs</code>, <code>MdNotes/Services/MatchFinder.cs</code></dd>
+  <dt>Location</dt><dd><code>SearchService.Search</code> line 24 (<code>DiacriticFolder.Fold(content)</code>) and 28-30; <code>MatchFinder.FindLiteral</code> line 71; <code>MatchFinder.Find</code> line 46 (<code>new Lines(text)</code>) and <code>Lines.Build</code> (132-138)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 54 &middot; <a href="#baseline">measured</a>: 29.2 MB allocated per keystroke on 5,000 notes, now 2.0 MB</dd>
+</dl>
+<div class="block"><b>Problem</b>For every note whose text contains any foldable character (which is nearly every Swedish note), <code>Fold</code> allocates a full-length copy of the note. <code>MatchFinder.Find</code> also builds a line-start index over the full text for every note, including notes with zero matches. The content cache saves the disk read but the folded copy and the line index are recreated on every debounce tick.</div>
+<div class="block"><b>Impact</b>Allocation traffic equal to the whole vault's text per scan (UTF-16, so twice the byte size), with notes over ~42K characters landing in the Large Object Heap and forcing gen2 collections. GC pauses add to the UI-thread time from finding 1.</div>
+<div class="block"><b>Recommendation</b>Store the folded text lazily alongside the raw text in <code>NoteContentCache</code> (fold once per read, not per scan), and build <code>Lines</code> lazily on the first match. A cheaper variant for <code>Search</code>: fold only the query and compare with a span-based loop that folds characters on the fly through the existing lookup table.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+  <p><strong>Done</strong>, with the cached-fold option. <code>NoteContentCache.ReadFolded</code> folds a note on the first request after it is read and keeps the fold on the entry, so a save or an outside edit drops it with the text. Search and replace both use it, and <code>MatchFinder</code> builds <code>Lines</code> on the first match, for literal and regex alike.</p>
+  <p>The fold counts against the 32M-character budget when it is a copy (an all-ASCII note folds to itself and costs nothing). So a vault where every note has an accent fits about half as many notes, roughly 6,000 instead of 12,000, before scans fall back to re-reading. Not counting it would have broken the budget's one job.</p>
+  <p><em>Follow-up, 2026-10-03:</em> the default budget went from 32M to <strong>48M characters</strong> (96 MB of UTF-16) so the fold does not halve the vault the cache covers: roughly 18,000 plain notes, or 9,000 where every note has an accent. Pinned by <code>The_default_budget_holds_eight_thousand_accented_notes</code>.</p>
+  <p>Measured with <code>ScanBenchmark</code>, 5,000 generated notes, on Linux with old and new code on the same machine (medians): warm search <strong>79.4 &rarr; 14.4 ms</strong>, replace find <strong>33.8 &rarr; 14.9 ms</strong>, allocation while typing <strong>29.9 &rarr; 2.0 MB per keystroke</strong>, Gen0/1/2 over nine keystrokes 29/29/2 &rarr; 3/2/2.</p>
+</div>
+</section>
+
+<section class="finding" id="f4">
+<h3>4. Content cache eviction is O(n) per evicted entry and thrashes on large vaults</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/NoteContentCache.cs</code>; same pattern in <code>MdNotes/Views/Markdown/Lru.cs</code> (25) and <code>MdNotes/Models/NotePositions.cs</code> (42)</dd>
+  <dt>Location</dt><dd><code>NoteContentCache.Put</code> lines 81-86 (<code>_entries.MinBy</code> in a <code>while</code>)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; commit <code>89d3067</code></dd>
+</dl>
+<div class="block"><b>Problem</b>Each eviction scans the whole dictionary with <code>MinBy</code>. When the budget (8M characters by default) is smaller than the vault, a sequential scan evicts on every read, so every note read costs O(entries), and because the scan is strictly sequential the LRU hit rate drops to zero: each note is evicted before it is asked for again.</div>
+<div class="block"><b>Impact</b>Vaults over ~8M characters (roughly 16 MB of Markdown) get no benefit from the cache and pay quadratic eviction overhead on every search. Smaller vaults are unaffected. The <code>Lru</code> and <code>NotePositions</code> copies of the pattern have capacities of 64 and 200 and do not matter.</div>
+<div class="block"><b>Recommendation</b>Track recency with a linked list or an ordered structure so eviction is O(1), and either raise the budget in proportion to the vault or make it clear in settings that a vault larger than the budget is scanned from disk. Verify with a synthetic vault above the budget.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-09-22</span>
+  <p><strong>Done</strong> in <code>89d3067</code> (<em>fix: review performance</em>), after <code>6c418c5</code>. Recency is now a <code>LinkedList&lt;string&gt;</code> with the node stored on the entry, so eviction is O(1) and the victim is always the front of the list. The budget moved from 8M to <strong>32M characters</strong> &mdash; 64 MB of UTF-16, about twelve thousand notes at the ~2.7 KB average it was measured against.</p>
+  <p>The numbers this finding asked for, quoted from the source comment: a warm search over a 5,000-note vault cost <strong>1,196 ms against 154 ms</strong> for a 2,000-note one &mdash; eight times the work for two and a half times the notes, which is the quadratic this describes. <code>HeldChars</code> and <code>BudgetChars</code> are exposed so a benchmark can see the cache overrun rather than infer it.</p>
+  <p>Past the budget the cache degrades to re-reading rather than failing. The <code>MinBy</code> pattern in <code>Lru.cs</code> and <code>NotePositions.cs</code> was left alone as the finding advised.</p>
+</div>
+</section>
+
+<section class="finding" id="f5">
+<h3>5. Quick switcher re-flattens and re-ranks the whole vault per keystroke</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/QuickSwitcherViewModel.cs</code>, <code>MdNotes/Services/NameMatch.cs</code></dd>
+  <dt>Location</dt><dd><code>QuickSwitcherViewModel.RefreshResults</code> (83-124), <code>FlattenNotes</code> (129-143), <code>NameMatch.Rank</code> (28-43)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 61 &middot; <a href="#baseline">measured</a>: 428 &micro;s per keystroke on 5,000 notes &mdash; no felt lag</dd>
+</dl>
+<div class="block"><b>Problem</b><code>OnQueryChanged</code> is not debounced (fine, it is in-memory), but each call allocates a new <code>SwitcherItem</code> per note plus folder-path strings, then ranks with a LINQ chain that sorts every candidate to take 50. <code>Rank</code> is called twice per note and each call folds both the candidate and the query, so the query is folded 2N times and each name is folded on every keystroke.</div>
+<div class="block"><b>Impact</b>Per keystroke: N record allocations, up to 4N string allocations, and an O(N log N) sort. Noticeable typing lag in the switcher from a few thousand notes upward.</div>
+<div class="block"><b>Recommendation</b>Cache the flattened list against the tree instance returned by <code>GetTree()</code> (it is the same reference until the vault changes), pre-fold names once when flattening, fold the query once per call, and replace the full <code>OrderBy</code> with a bounded top-50 selection or a bucket per <code>NameRank</code>.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, although the baseline found no felt lag (428 &micro;s): the allocation was the real cost, and the fix was contained. <code>QuickSwitcherViewModel</code> keeps its flattened rows, with both names pre-folded, against the tree instance <code>GetTree()</code> returned, and rebuilds only when it gets a different one. The query is folded once per keystroke through a new four-argument <code>NameMatch.Rank</code> overload; the two-argument one delegates to it, so there is still one rule. The full <code>OrderBy</code> became a heap bounded at 50, worst on top, ordered by rank, then name with the same culture-aware comparer the old <code>ThenBy</code> used, then tree order (what the stable sort gave). The empty-query list is computed once per tree.</p>
+  <p>One trap found while measuring: <code>Enum.CompareTo</code> takes <code>object</code>, and boxing the rank on every heap comparison was 350 KB per keystroke on its own; ranks are compared as <code>int</code>s now.</p>
+  <p><code>SwitcherBenchmarks</code>, 5,000 notes (BenchmarkDotNet short job, Linux), against the baseline: broad query <strong>394 &micro;s / 8.8 KB</strong> (was 428 &micro;s / 664 KB), narrow 34 &micro;s / 560 B (was 251 &micro;s / 536 KB), empty 1.3 &micro;s / 3.9 KB (was 308 &micro;s / 522 KB). The broad case's remaining time is culture-aware name comparison, kept for identical ordering. Tests: rows are reused until the vault changes, and the top 50 equal a full sort's over 280 notes spanning every rank tier, duplicate names included. The task 44 and task 50 tests pass unchanged.</p>
+</div>
+</section>
+
+<section class="finding" id="f6">
+<h3>6. Drag-over walks the whole tree twice per pointer move</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Views/Shell/Sidebar.axaml.cs</code>, <code>MdNotes/ViewModels/VaultWorkspaceViewModel.cs</code>, <code>MdNotes/ViewModels/TreeNodeViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>Sidebar.OnDragOver</code> (88-100) → <code>Dragged</code> (116-117) → <code>VaultWorkspaceViewModel.FindNode</code> (537-538); <code>ResolveDrop</code> → <code>SiblingsOf</code> (543-544) → <code>FindNode</code>; <code>Sidebar.RowUnder</code> (140-144); <code>TreeNodeViewModel.SelfAndDescendants</code> (66-72)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 62 &middot; <a href="#baseline">measured</a>: 129 &micro;s and 304 KB per tree walk on 5,000 notes, twice per pointer move</dd>
+</dl>
+<div class="block"><b>Problem</b>Every <code>DragOver</code> event (fired continuously while dragging) resolves the dragged path with <code>FindNode</code>, then <code>ResolveDrop</code> finds the parent with a second <code>FindNode</code>. <code>FindNode</code> is <code>SelectMany</code> over a recursive iterator, which costs O(depth) per yielded node. <code>RowUnder</code> adds a LINQ pass over visual ancestors of every hit visual. <code>SelectPath</code> (512-519) also walks all nodes and allocates a string per folder via <code>IsSameOrUnder</code>.</div>
+<div class="block"><b>Impact</b>Two full tree walks plus LINQ allocations per pointer move during a drag. Smooth on a few hundred rows; stutters on several thousand.</div>
+<div class="block"><b>Recommendation</b>Resolve the dragged node once on drag start and keep it in a field; give <code>TreeNodeViewModel</code> a <code>Parent</code> reference so siblings need no lookup; and keep a path→node dictionary refreshed in <code>Reconcile</code> for <code>FindNode</code> (the comparer must stay <code>OrdinalIgnoreCase</code> as the current lookup is). Replace the recursive iterator with an explicit stack.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>TreeNodeViewModel.Parent</code> is set when a row is created and never changes, because a row that moves is a new row by path. <code>SiblingsOf</code>, <code>ParentFolder</code> and <code>SelectPath</code>'s ancestor expansion all follow it now: <code>SelectPath</code> walks up from the node instead of testing every folder in the vault against the path. <code>FindNode</code> is a lookup in a path index (<code>OrdinalIgnoreCase</code>, first row in drawing order wins, as the old <code>FirstOrDefault</code> did) rebuilt after every reconcile and cleared on a vault switch. The recursive <code>SelfAndDescendants</code> became an explicit-stack <code>TreeNodeViewModel.Walk</code> with the same order.</p>
+  <p><code>DragBenchmarks</code>, 5,000 notes (short job, Linux): the lookup is <strong>38 ns, nothing allocated</strong>, where the walk is 88 &micro;s / 107 KB (122 &micro;s / 304 KB in the baseline, before the iterator change), twice per pointer move. The index costs 0.27 ms to rebuild once per reconcile, against a reconcile that already walks the vault.</p>
+  <p>Two parts of the recommendation were deliberately not done. Caching the dragged node at drag start: with an O(1) lookup it saves nothing, and a cached row could outlive a refresh that removed it. <code>Sidebar.RowUnder</code>'s LINQ over visual ancestors: it stops at the first row border under the pointer, a handful of visuals, so it is not where the cost was. Drop policy and Alt+&uarr;/&darr; are unchanged; their tests (<code>TreeOrderTests</code>, <code>SidebarDragTests</code>) pass as they were.</p>
+</div>
+</section>
+
+<section class="finding" id="f7">
+<h3>7. Preview is rebuilt while hidden in Edit-only mode</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Views/MainWindow.axaml</code>, <code>MdNotes/Views/Markdown/MarkdownView.cs</code>, <code>MdNotes/ViewModels/EditorViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>MainWindow.axaml</code> lines 74-83 (ScrollViewer <code>IsVisible</code>, MarkdownView <code>Document</code> binding); <code>MarkdownView.Rebuild</code> (102-117); <code>EditorViewModel.RenderPreview</code> (257-262)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 57 &middot; <a href="#baseline">measured</a>: 56 ms and 19 MB per rebuild of a 104 KB note</dd>
+</dl>
+<div class="block"><b>Problem</b>In Edit-only mode the preview's <code>ScrollViewer</code> is hidden, but <code>EditorViewModel</code> still parses the Markdown and sets <code>PreviewDocument</code> every 250 ms, and <code>MarkdownView</code> still builds the full control tree, including <code>DiagramView</code> construction (which renders Mermaid SVG synchronously) and image decoding. Only layout is skipped.</div>
+<div class="block"><b>Impact</b>The full parse-and-build cost is paid on every debounce tick for output nobody sees. This is the most common mode for long typing sessions.</div>
+<div class="block"><b>Recommendation</b>Skip <code>Rebuild</code> when the view is not effectively visible and mark it dirty; rebuild once on becoming visible. Optionally also skip <code>_renderer.Parse</code> in the view model when the preview is hidden, keeping only the word and character counts.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, view side only. <code>MarkdownView.QueueRebuild</code> returns early while the view is hidden and marks the rebuild owed; becoming visible again with something owed queues exactly one rebuild, against the document as it is by then. A posted rebuild re-checks, in case the view was hidden between the request and the dispatcher getting to it.</p>
+  <p>Avalonia 12 keeps <code>IsEffectivelyVisibleChanged</code> internal (checked by reflection; the XML docs list it), so the view watches its <em>own</em> <code>IsVisible</code>, and <code>MainWindow.axaml</code> now binds it to <code>IsPreviewVisible</code> beside the ScrollViewer's binding. A test through the real window pins that binding: with it removed the test fails (2 rebuilds where 1 is expected).</p>
+  <p>The optional half, skipping <code>_renderer.Parse</code> in the view model, was not done: the baseline puts the parse at 0.65 ms of the 56 ms (about 1%), which does not justify the view model learning about view modes. Saved: the full 56 ms / 19 MB per 250 ms tick on a 100 KB note, for as long as Edit-only mode is on.</p>
+</div>
+</section>
+
+<section class="finding" id="f8">
+<h3>8. Per-run DynamicResource bindings although the preview rebuilds on theme change</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Views/Markdown/InlineRenderer.cs</code>, <code>MdNotes/Views/Markdown/BlockRenderer.cs</code>, <code>MdNotes/Views/Markdown/MarkdownView.cs</code></dd>
+  <dt>Location</dt><dd><code>InlineRenderer.Paragraph</code> line 26, <code>Add</code> lines 60-61, <code>AddLink</code> 116, <code>AddFolderGlyph</code> 137-138, <code>AddTaskListCheckbox</code> 188-189; <code>BlockRenderer</code> list markers 92, quotes 122-123, code 130, rules 182, tables 203-208; <code>MarkdownView</code> constructor line 47</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 58 &middot; <a href="#baseline">measured</a>: rebuild total measured; settled by an A/B benchmark instead of a call tree</dd>
+</dl>
+<div class="block"><b>Problem</b>Every paragraph, inline code run, link span, list marker and table cell gets one or more <code>DynamicResourceExtension</code> bindings. Each is a live subscription to the resource dictionary. But <code>MarkdownView</code> already subscribes to <code>ActualThemeVariantChanged</code> and rebuilds the whole tree on a theme change, so the dynamic behaviour is never used.</div>
+<div class="block"><b>Impact</b>Thousands of resource subscriptions created and torn down every 250 ms while typing in a long note, plus the memory each binding holds. This is likely a meaningful share of rebuild time but must be measured (see profiling section).</div>
+<div class="block"><b>Recommendation</b>Resolve the handful of brushes once per <code>Rebuild</code> (the code already does this for the diagram palette in <code>MarkdownView.Palette</code>), pass them through <code>RenderContext</code>, and assign them directly. Verify with a CPU profile before and after on a 100 KB note.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, settled by an A/B measurement of the change instead of the CPU call tree this was gated on. A profiler session needs a person at the app; benchmarking the tree with and without the change answers the same question, how much the resource bindings cost, directly. <code>PreviewResources</code> resolves the nine values the preview uses (six brushes, three icon geometries) once per <code>Rebuild</code> through <code>TryFindResource</code> with the view's theme variant, the way <code>MarkdownView.Palette</code> already resolved the diagram palette, and <code>RenderContext.Look</code> carries them. All nineteen <code>DynamicResourceExtension</code> uses in <code>BlockRenderer</code> and <code>InlineRenderer</code> became plain assignments. A missing key resolves to <code>UnsetValue</code>, which is what the binding supplied.</p>
+  <p><code>RebuildBenchmarks</code> (BenchmarkDotNet default job, same Linux machine, before and after): 100 KB note <strong>58.4 &rarr; 48.3 ms</strong> and <strong>18.9 &rarr; 16.3 MB</strong> per rebuild, 10 KB note 4.98 &rarr; 4.15 ms and 3.35 &rarr; 2.90 MB, about 17% of the time. A theme switch still repaints, because the view rebuilds on <code>ActualThemeVariantChanged</code>: <code>Switching_the_theme_repaints_the_preview_in_the_new_theme</code> checks the paragraph colour is the dark theme's <code>MdText</code> after the switch. Both themes were rendered headlessly and checked by eye, and <code>Renders_shell_in_both_themes</code> stays green.</p>
+</div>
+</section>
+
+<section class="finding" id="f9">
+<h3>9. Word count allocates a MatchCollection on every preview tick</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/EditorViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>EditorViewModel.RenderPreview</code> line 260; <code>WordRegex</code> line 18</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 55</dd>
+</dl>
+<div class="block"><b>Problem</b><code>WordRegex.Matches(Text).Count</code> materialises a <code>Match</code> object per word to count them.</div>
+<div class="block"><b>Impact</b>One allocation per word in the note every 250 ms while typing. For a 20,000-word note that is 20,000 short-lived objects per tick, in the same tick as the Markdown parse.</div>
+<div class="block"><b>Recommendation</b>Use <code>WordRegex.Count(Text)</code> (available since .NET 7) or a simple span loop counting whitespace transitions. One-line change.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>WordRegex.Count(Text)</code> replaces <code>WordRegex.Matches(Text).Count</code> in <code>EditorViewModel.RenderPreview</code>; same regex, so the same count, without a <code>Match</code> per word. Pinned by <code>EditorWordCountTests</code>.</p>
+</div>
+</section>
+
+<section class="finding" id="f10">
+<h3>10. SvgCssInliner rebuilds the whole SVG string per <code>var()</code></h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/SvgCssInliner.cs</code></dd>
+  <dt>Location</dt><dd><code>SvgCssInliner.Inline</code> lines 35-39</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 55 &middot; <a href="#baseline">measured</a>: 5.3 MB allocated to inline a 15 KB SVG</dd>
+</dl>
+<div class="block"><b>Problem</b>The loop finds the next <code>var(</code> from the start of the string each iteration and rebuilds the entire SVG with three slices and a concatenation. Mermaid output contains many <code>var()</code> references and is tens of kilobytes.</div>
+<div class="block"><b>Impact</b>O(length × occurrences) copying per diagram render: hundreds of full-string copies of a large SVG. Cached afterwards by <code>DiagramCache</code>, but paid again for every edit inside a Mermaid fence (finding 12).</div>
+<div class="block"><b>Recommendation</b>Single pass with a <code>StringBuilder</code>: append the text between occurrences and the evaluated replacement, resuming the search after the last replacement. Same output, linear cost.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>SvgCssInliner.Inline</code> now makes one pass with a <code>StringBuilder</code>, resuming the <code>var(</code> search after each replacement, and returns the input instance untouched when there is nothing to inline. A resolved value never contains <code>var(</code>, so the old re-scan from the start was never needed for correctness.</p>
+  <p>Re-measured with <code>DiagramBenchmarks</code> (BenchmarkDotNet short job, Linux): the 13-node flowchart inlines in <strong>43 &micro;s allocating 195 KB</strong>, against 244 &micro;s and 5,267 KB in the baseline; the 4-node one in 15 &micro;s / 75 KB. Allocation is machine-independent; the times are from a different machine than the baseline. Pinned by an exact-output test and a same-instance test.</p>
+</div>
+</section>
+
+<section class="finding" id="f11">
+<h3>11. Note images are decoded at full resolution and held for two builds</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Views/Markdown/ImageCache.cs</code>, <code>MdNotes/Views/Markdown/InlineRenderer.cs</code></dd>
+  <dt>Location</dt><dd><code>ImageCache.Get</code> line 61 (<code>new Bitmap(path)</code>); <code>InlineRenderer.AddImage</code> lines 161-167 (<code>MaxWidth = 800</code>)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 56</dd>
+</dl>
+<div class="block"><b>Problem</b>Images are decoded at their native size and displayed at most 800 device-independent pixels wide. A 12-megapixel photo decodes to roughly 48 MB of BGRA. The generational cache correctly keeps the current and previous build, so up to two copies of each image are live.</div>
+<div class="block"><b>Impact</b>Memory proportional to source image size rather than display size, and a synchronous full-size decode on the UI thread the first time a note with photos opens.</div>
+<div class="block"><b>Recommendation</b>Decode with <code>Bitmap.DecodeToWidth(stream, targetWidth)</code> where the target is 800 × the window's render scaling (with a sensible ceiling). Keep the existing cache key and lifetime logic.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>ImageCache</code> decodes through <code>Bitmap.DecodeToWidth</code> when the file is wider than <code>DecodeWidth</code>, which <code>MarkdownView.Rebuild</code> sets to <code>ImageCache.DisplayWidth</code> (800, now also the renderer's <code>MaxWidth</code>) &times; the window's render scaling, clamped to 1&ndash;3&times;. The width is read first with <code>SKBitmap.DecodeBounds</code> (header only, SkiaSharp is already used by <code>DiagramCache</code>), because <code>DecodeToWidth</code> would also enlarge a small image. The cache key and the two-build lifetime from task 49 are unchanged.</p>
+  <p>By arithmetic rather than a profiler: a 4000&times;3000 photo decoded natively is 48 MB of BGRA; at 800 px it is 1.9 MB, at 2&times; scaling 7.7 MB. Tests: a 1600 px image decodes at 800 with its aspect kept, a 100 px one is not enlarged, and the scaling-to-width mapping including the clamp.</p>
+  <p>Not handled: a window moved to a screen with a different scaling keeps already-decoded bitmaps at the old width until they fall out of the cache, since the key was to stay as it is.</p>
+</div>
+</section>
+
+<section class="finding" id="f12">
+<h3>12. Mermaid renders synchronously per keystroke inside a fence</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Views/Markdown/DiagramView.cs</code>, <code>MdNotes/Views/Markdown/DiagramCache.cs</code></dd>
+  <dt>Location</dt><dd><code>DiagramView</code> constructor line 38 (<code>cache.NaturalSize</code>); <code>DiagramCache.GetPicture</code> (28-29), capacities on line 17</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 59 &middot; <a href="#baseline">measured</a>: 4.4 ms per changed diagram, 81% of it in <code>SvgSource.LoadFromSvg</code></dd>
+</dl>
+<div class="block"><b>Problem</b>Every edit inside a <code>```mermaid</code> fence produces a new source string, so each 250 ms tick renders Mermaid → SVG → <code>SvgSource</code> synchronously in the <code>DiagramView</code> constructor, then rasterizes a bitmap on first layout. Each intermediate typing state is cached as an unmanaged <code>SvgSource</code> picture (up to 64) and bitmap (up to 32) until evicted.</div>
+<div class="block"><b>Impact</b>UI stalls while typing in a diagram, and up to 64 stale vector pictures plus 32 stale bitmaps of half-typed diagrams held in unmanaged memory. Bounded, so not a leak, but the bound is generous for transient states.</div>
+<div class="block"><b>Recommendation</b>Measure first: time <code>MermaidRenderer.RenderSvg</code> + <code>SvgSource.LoadFromSvg</code> for typical diagrams. If it is more than a few milliseconds, render the SVG on the thread pool and show the previous bitmap until it arrives. Consider a smaller picture capacity, since only the diagrams in the current note need to be hot.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> Measured first, as asked: the whole <code>DiagramView</code> constructor path for the 13-node flowchart was <strong>8.7 ms</strong> on this Linux machine (short job, wide error bars), 4.4 ms in the Windows baseline, and <code>SvgSource.LoadFromSvg</code> was most of it both times, past the &ldquo;more than a few milliseconds&rdquo; bar. So an <em>edited</em> diagram now renders on the thread pool. <code>DiagramSlots</code> remembers what each Mermaid block showed in the last build, by position; when a block's source changes and its previous picture is cached, the build shows that previous picture and calls <code>DiagramCache.LoadInBackground</code>. When the render lands back on the UI thread, the view rebuilds only if the latest build is still waiting for that exact source, and the rebuild then finds it in the cache. A render the user has typed past is <strong>disposed rather than cached</strong>, which answers the retention half of the finding without shrinking the capacities (a note with many diagrams would otherwise thrash). A note's first showing stays synchronous: there is nothing to show meanwhile, and a blank box that fills in is worse than 5 ms.</p>
+  <p>Background failures are remembered (bounded at 64), because the landing triggers a rebuild, and a forgotten failure would be retried by that rebuild forever. Every render, synchronous or not and across windows, holds one process-wide lock: before this change all renders ran on the UI thread and never overlapped, and Mermaider and Svg.Skia were never asked to be thread-safe. The UI thread can wait at most one render on it, never worse than before. Ownership from tasks 45/46 holds: the view still keeps only keys, and a render that lands after its cache was disposed disposes its picture.</p>
+  <p>Tests (<code>DiagramBackgroundRenderTests</code>, with a gated real renderer): an edit is rendered off the UI thread while the previous picture stays on screen, then replaces it; a render typed past is not kept (the cache holds the first and the latest only); a broken edit shows its error and is rendered exactly once. The existing first-render view tests pass unchanged.</p>
+</div>
+</section>
+
+<section class="finding" id="f13">
+<h3>13. Bound ObservableCollections are filled one item at a time</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/SearchReplaceViewModel.cs</code>, <code>MdNotes/ViewModels/VaultWorkspaceViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>SearchReplaceViewModel.Rescan</code> lines 105-118; <code>VaultWorkspaceViewModel.RunSearch</code> lines 437-440</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 60</dd>
+</dl>
+<div class="block"><b>Problem</b>Both scans <code>Clear()</code> a collection bound to an items control and then <code>Add</code> each result, raising one <code>CollectionChanged</code> per row. <code>Rescan</code> also creates a <code>NoteResultViewModel</code> with its own <code>ObservableCollection&lt;MatchViewModel&gt;</code> per note. The quick switcher does the same but is capped at 50 rows and is fine.</div>
+<div class="block"><b>Impact</b>Per-row container generation and layout invalidation on the UI thread for potentially thousands of rows, every debounce tick while typing a replace query.</div>
+<div class="block"><b>Recommendation</b>Build the rows into a plain list and swap in one step: either a collection with an <code>AddRange</code>/reset notification, or a read-only <code>IReadOnlyList</code> property replaced wholesale with one <code>PropertyChanged</code>. Also cap or virtualise the results list in the overlay.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>SearchReplaceViewModel.Results</code> and <code>VaultWorkspaceViewModel.SearchResults</code> are now <code>IReadOnlyList</code> observable properties, replaced wholesale: one <code>PropertyChanged</code> per scan instead of a <code>Reset</code> plus one <code>Add</code> per row. <code>NoteResultViewModel.Matches</code> is a fixed list too, since a rescan builds new rows anyway.</p>
+  <p>The overlay is <strong>virtualised, not capped</strong>, because <em>Replace all</em> acts on everything listed and a cap would quietly leave notes out. The note list is an <code>ItemsControl</code> whose template holds the <code>ScrollViewer</code> and a <code>VirtualizingStackPanel</code>. One gotcha worth recording: a custom template's <code>ItemsPresenter</code> needs <code>ItemsPanel="{TemplateBinding ItemsPanel}"</code>, or it silently falls back to a plain <code>StackPanel</code> &mdash; the first attempt realised all 300 rows because of exactly that. Measured in a headless window: 300 matching notes realise <strong>6 containers</strong>, and scrolling to the end brings the last note into view. Rendered and checked visually; the overlay looks as it did.</p>
+</div>
+</section>
+
+<section class="finding" id="f14">
+<h3>14. PathScope.IsSameOrUnder allocates a string per call</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/PathScope.cs</code></dd>
+  <dt>Location</dt><dd><code>PathScope.IsSameOrUnder</code> lines 7-9; callers <code>ReplaceService.Find</code> line 28 (per note per rescan), <code>VaultWorkspaceViewModel.SelectPath</code> line 517 (per folder)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 55</dd>
+</dl>
+<div class="block"><b>Problem</b><code>ancestor + Path.DirectorySeparatorChar</code> concatenates a new string on every call.</div>
+<div class="block"><b>Impact</b>One allocation per note per replace rescan and per folder per selection. Small, but it sits inside the hot loops of findings 3 and 6.</div>
+<div class="block"><b>Recommendation</b>Compare with <code>path.Length &gt; ancestor.Length &amp;&amp; path[ancestor.Length] == Path.DirectorySeparatorChar &amp;&amp; path.StartsWith(ancestor, OrdinalIgnoreCase)</code>. Allocation-free, same semantics.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> <code>PathScope.IsSameOrUnder</code> compares lengths, the separator at <code>ancestor.Length</code> and a case-insensitive <code>StartsWith</code> &mdash; no concatenation. <code>PathScopeTests</code> pins the segment semantics, including the sibling-with-the-same-prefix case.</p>
+</div>
+</section>
+
+<section class="finding" id="f15">
+<h3>15. Watcher storms post one dispatcher closure per event per window</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/VaultService.cs</code>, <code>MdNotes/ViewModels/VaultWorkspaceViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>VaultService.OnFsChanged</code> (481-490), <code>IsQuiet</code> (500-514); <code>VaultWorkspaceViewModel</code> constructor lines 100-104</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 63</dd>
+</dl>
+<div class="block"><b>Problem</b>Every non-quiet file-system event allocates a relative-path string on the watcher thread and then, per open window, posts a closure to the UI thread whose only effect is restarting a 300 ms timer. A build or <code>git checkout</code> inside the vault produces thousands of events.</div>
+<div class="block"><b>Impact</b>Thousands of queued dispatcher items and allocations during a storm; the UI thread drains them one by one. The debounce already prevents repeated tree rebuilds, so the visible effect is short.</div>
+<div class="block"><b>Recommendation</b>Coalesce on the service side: set an <code>Interlocked</code> flag on the first event and raise <code>VaultChanged</code> once per quiet period, or have the workspace skip the post when the timer is already armed (an <code>int</code> flag cleared on tick).</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong> on the workspace side, with a small <code>BurstGate</code> (<code>MdNotes/ViewModels/BurstGate.cs</code>): the first <code>VaultChanged</code> of a burst posts the timer restart to the UI thread, and every later one only records its time with a <code>Volatile.Write</code>. When the timer fires, the gate settles only if nothing arrived in the last 300 ms, and otherwise re-arms the timer for <em>the rest</em> of the quiet period. That keeps the old trailing debounce (refresh once, after the burst) without one dispatcher item per event per window. A simple &ldquo;skip the post while armed&rdquo; flag alone would have refreshed every 300 ms <em>during</em> a long burst, so the quiet check is the important half. The relative-path allocation in <code>IsQuiet</code> stays: it happens only when an exclusion list exists, and it is what decides whether the event matters at all.</p>
+  <p>Tests drive the gate with a hand-moved clock: only the first of 1,000 signals asks for a check, the check waits for the <em>last</em> signal to go quiet, and 10,000 signals from parallel threads ask exactly once.</p>
+  <p>Corrected while doing task 64: the first version re-armed for a <em>full</em> interval, so a two-signal burst (saving the exclusion list signals directly and again through the ignore-file watcher) refreshed about 600 ms after the first signal instead of 300 ms after the last. <code>ExcludeTests</code>, which wait 500 ms, caught it intermittently. <code>TrySettle</code> now returns the remaining wait, and five consecutive runs of the timing-sensitive tests pass.</p>
+</div>
+</section>
+
+<section class="finding" id="f16">
+<h3>16. Every fresh launch waits on the named-pipe connect timeout</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/SingleInstance.cs</code>, <code>MdNotes/Program.cs</code></dd>
+  <dt>Location</dt><dd><code>SingleInstance.TryHandOff</code> lines 30-48, <code>ConnectTimeoutMs</code> line 12; <code>Program.Main</code> line 15</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 63</dd>
+</dl>
+<div class="block"><b>Problem</b>When no instance is running, <code>NamedPipeClientStream.Connect(300)</code> retries until the timeout elapses before throwing, so the first launch always pays close to 300 ms before Avalonia starts.</div>
+<div class="block"><b>Impact</b>Fixed startup delay on the common cold-start path.</div>
+<div class="block"><b>Recommendation</b>Check existence first (a named <code>Mutex</code> owned by the listening instance, or <code>File.Exists(@"\\.\pipe\" + name)</code> on Windows) and connect only when it is there. Keep the timeout as a fallback.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> The listening instance holds a named mutex, <code>Global\MdNotes-&lt;user&gt;</code>, for as long as it listens. <code>TryHandOff</code> checks <code>Mutex.TryOpenExisting</code> first and returns at once when there is none. Any other outcome, including a mutex left by a crashed instance or a platform that cannot answer, falls through to the original connect with its timeout, which stays the real test. <code>Global\</code> because the pipe is global, and on Unix an unprefixed name is per login session.</p>
+  <p>Measured on Linux by mutation: with the check disabled a cold <code>TryHandOff</code> took <strong>300 ms</strong>; with it, under the test's 150 ms bound (it is a single shared-memory lookup). Hand-off to a running instance, and starting fresh after it closes, are both tested over real pipes. <strong>Not verified on Windows</strong>; that check is in <code>docs/questions-queue.md</code>.</p>
+</div>
+</section>
+
+<section class="finding" id="f17">
+<h3>17. Settings are reflection-serialized and written synchronously per change</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/JsonSettingsService.cs</code>, <code>MdNotes/ViewModels/EditorViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>JsonSettingsService.Write</code> (133-137), <code>SaveNotePositions</code> (41-45); <code>EditorViewModel.RememberPosition</code> (249-255)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 64</dd>
+</dl>
+<div class="block"><b>Problem</b>Every property set and every note switch serialises the whole settings object with the reflection-based <code>JsonSerializer</code> and writes the file synchronously on the UI thread. <code>SaveNotePositions</code> also sorts and copies up to 200 entries into a new dictionary each time.</div>
+<div class="block"><b>Impact</b>Small: a few hundred microseconds plus a disk write per user action. The design correctly avoids writing on caret moves. First-call reflection warm-up adds a little to startup.</div>
+<div class="block"><b>Recommendation</b>Optional: a <code>JsonSerializerContext</code> (source generation) removes the reflection cost and helps trimming; a short write-behind delay would coalesce bursts. Neither is urgent.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, the source-generation half. Measured first, as asked, in a fresh process with the real settings shape and 200 note positions: reflection's first read cost <strong>42.7 ms</strong>, source generation's <strong>32.0 ms</strong>; a steady write 34 &micro;s against 26 &micro;s. The first read happens at startup before any window, so the 11 ms is startup time. <code>JsonSettingsService</code> now serialises through a nested <code>JsonSerializerContext</code> with default options. Two tests pin the file format: a file in the shape earlier versions wrote (PascalCase, enums as numbers) reads back every field, and what is written keeps those names. An internal constructor taking the file path keeps tests off the real settings file.</p>
+  <p><strong>Write-behind not done:</strong> it would save tens of microseconds per settings change and could lose settings if the app crashed before the delayed write. <code>Moving_the_caret_does_not_write_the_settings_file</code> stays green.</p>
+</div>
+</section>
+
+<section class="finding" id="f18">
+<h3>18. Vault walk does a per-folder stat and allocates two records per entry</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/Services/VaultWalk.cs</code>, <code>MdNotes/Services/FolderOrderFile.cs</code></dd>
+  <dt>Location</dt><dd><code>VaultWalk.Entries</code> (45-56), <code>Children</code> lines 73-76; <code>FolderOrderFile.Apply</code> (20-31), <code>ReadKeys</code> line 62</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 64 &middot; <a href="#baseline">measured</a>: cold walk 41 ms on 5,000 notes, 127 ms on 20,000</dd>
+</dl>
+<div class="block"><b>Problem</b>Per folder: two LINQ <code>OrderBy</code> chains, <code>Path.GetFileName</code> computed twice per directory, a collection-expression copy, then <code>FolderOrderFile.Apply</code> stats <code>.order</code> and, when present, sorts again. <code>Children</code> then re-creates every entry with a <code>with</code> expression, so each entry is allocated twice.</div>
+<div class="block"><b>Impact</b>Only on cache invalidation (mutation or watcher event), so the absolute cost is modest. The <code>.order</code> stat is one extra syscall per folder per walk.</div>
+<div class="block"><b>Recommendation</b>Enumerate with <code>DirectoryInfo.EnumerateFileSystemInfos</code> once, noting whether <code>.order</code> was seen instead of a separate <code>File.Exists</code>, and construct each <code>VaultEntry</code> once with its children and title. Low priority; measure the walk on a large vault before spending time here.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, the enumeration half. <code>VaultWalk.Entries</code> reads each folder once through a <code>FileSystemEnumerable</code> and notes <code>.order</code> during that pass. It used to enumerate directories, then files, then stat <code>.order</code>. It keeps what the two calls did exactly: <code>ToSpecifiedFullPath</code> strings, a Win32 <code>*.md</code> match with the platform's casing, hidden entries included, inaccessible folders still an error, and a stable sort. <code>FolderOrderFile.Apply</code> is only called for folders that have the file. <code>ScanBenchmark</code>, 5,000 notes, Linux, old and new code on the same machine: cold walk with titles off <strong>9.8 &rarr; 7.6 ms</strong> median. Directory enumeration costs more on NTFS, so Windows should gain more; not measured there.</p>
+  <p>The second allocation per entry (<code>with</code> in <code>Children</code>) stays: removing it means <code>Entries</code>, which the move code also uses on its own, returning something other than <code>VaultEntry</code>, for one short-lived record per entry per walk.</p>
+</div>
+</section>
+
+<section class="finding" id="f19">
+<h3>19. Replace overlay retains the undo snapshot and exclusions indefinitely</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/SearchReplaceViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>_undo</code> line 26, <code>_excluded</code> line 24, <code>Close</code> (82-88), <code>ClearUndo</code> (91-95)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 55</dd>
+</dl>
+<div class="block"><b>Problem</b>The undo snapshot holds the full previous text of every note changed by the last replace until the next replace or a vault switch; the <code>_excluded</code> set is cleared only after a replace, never on <code>Close</code>, so unticked match keys accumulate across overlay sessions.</div>
+<div class="block"><b>Impact</b>Bounded by one replace's worth of text and by match-key tuples. By design for undo; the exclusion growth is unintentional but tiny.</div>
+<div class="block"><b>Recommendation</b>Clear <code>_excluded</code> in <code>Close</code> if the choices are not meant to survive reopening. Leave the undo snapshot as is; document it if memory becomes a concern.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong> as recommended: <code>Close</code> clears <code>_excluded</code>, so unticked matches survive rescans within a session but not a reopen. The undo snapshot is left alone, by design. Pinned by <code>Closing_the_overlay_forgets_what_was_unticked</code>.</p>
+</div>
+</section>
+
+<section class="finding" id="f20">
+<h3>20. Selection changes walk every match in the results</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev low">Low</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/SearchReplaceViewModel.cs</code></dd>
+  <dt>Location</dt><dd><code>OnSelectionChanged</code> (217-230), <code>UpdateStatus</code> (232-243)</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 60</dd>
+</dl>
+<div class="block"><b>Problem</b>Toggling one checkbox iterates all notes and all matches to resync <code>_excluded</code>, then <code>UpdateStatus</code> runs two more LINQ passes over everything.</div>
+<div class="block"><b>Impact</b>O(total matches) per click. Only noticeable with tens of thousands of matches.</div>
+<div class="block"><b>Recommendation</b>Pass the changed match into the callback and update <code>_excluded</code> and the running counts incrementally. Low priority.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done.</strong> A click now touches one note. <code>NoteResultViewModel</code> keeps <code>SelectedCount</code> and reports its previous value with the change, and the overlay updates <code>_excluded</code> for that note only and adjusts running totals of selected matches and notes. The totals are recomputed once from the rows when a scan lands. <code>Running_totals_agree_with_a_recount_through_match_and_note_clicks</code> mixes match-level and note-level clicks and checks the status line and <code>Selection()</code> against the counts a full recount gives.</p>
+</div>
+</section>
+
+<section class="finding" id="f21">
+<h3>21. A post-mutation tree walk re-reads the vault once the content cache is at budget</h3>
+<dl class="meta">
+  <dt>Severity</dt><dd><span class="sev medium">Medium</span></dd>
+  <dt>File</dt><dd><code>MdNotes/ViewModels/VaultWorkspaceViewModel.cs</code>, <code>MdNotes/Services/NoteContentCache.cs</code></dd>
+  <dt>Location</dt><dd><code>RefreshTree</code> (563-569) and its call sites (211, 221, 250, 265, 281, 312, 340, 356, 417); <code>NoteContentCache</code> budget, line 30</dd>
+  <dt>Status</dt><dd><span class="st done">Done</span> &middot; todos.md task 65 &middot; <a href="#baseline">measured</a>: over budget, a warm re-walk costs as much as a cold one: 1,970 ms on 20,000 notes</dd>
+  <dt>Added</dt><dd>2026-09-22, while auditing finding 1 &mdash; not part of the original review</dd>
+</dl>
+<div class="block"><b>Problem</b>Finding 1 moved the cold, unbounded walks off the UI thread but deliberately left <code>RefreshTree</code> synchronous where the user has just created, renamed, deleted or moved a single entry. The argument for that, stated in the source, is that only one entry changed and <code>NoteContentCache</code> still holds every other note's head, so the walk costs one disk read. <code>VaultWalk.Of(root, ignore, revision, titles ? _contents.Read : null)</code> confirms the title reads do go through the cache. But the cache is bounded at 32M characters, and past that bound it degrades to re-reading &mdash; at which point the same synchronous walk reads a large share of the vault on the UI thread.</div>
+<div class="block"><b>Impact</b>On a vault above roughly twelve thousand notes with <code>UseNoteTitles</code> on, renaming one note freezes the window for something approaching the 559 ms measured over five thousand notes, and worse as the vault grows. Below the budget there is no effect at all, which is why it was not visible when finding 1 was fixed.</div>
+<div class="block"><b>Recommendation</b>Have <code>RefreshTree</code> fall back to <code>RefreshTreeAsync</code> when the cache cannot cover the vault &mdash; <code>NoteContentCache</code> already exposes <code>HeldChars</code> and <code>BudgetChars</code> for exactly this kind of test, so the check is cheap and needs no new state. The generation counter in <code>WalkAsync</code> already makes the async path safe to take from anywhere. Alternatively drop the synchronous path entirely and measure whether the extra dispatcher hop is noticeable on a small vault.</div>
+<div class="status">
+  <span class="lbl">Status &middot; 2026-10-03</span>
+<p><strong>Done</strong>, with the recommended fallback rather than dropping the synchronous path. <code>HeldChars</code> against <code>BudgetChars</code> turned out not to be a usable test: the eviction loop keeps held characters at or under the budget, so &ldquo;at budget&rdquo; is never exactly true and a threshold would be a guess. <code>NoteContentCache.HasOverrun</code> records the fact that matters instead: the budget has had to evict since the last <code>Clear</code>. It is one bool, cleared on a vault switch.</p>
+  <p><code>VaultService.TreeWalkIsCheap</code> is <code>!UseNoteTitles || !HasOverrun</code>, because with titles off the walk opens no note and the cache does not come into it. <code>RefreshTree</code> became <code>RefreshTreeAfterEditAsync</code>: synchronous and already complete while the walk is cheap, <code>RefreshTreeAsync</code> otherwise. The nine call sites await it before selecting the row they made. <code>OpenWikiLink</code>, <code>ResetOrder</code>, <code>MoveUp</code>/<code>MoveDown</code> and <code>MoveNode</code> became Task-returning for that. Under budget nothing changes: <code>Under_budget_a_move_finishes_before_the_command_returns</code> pins that the command completes before it returns.</p>
+  <p><em>Follow-up, 2026-10-03:</em> the gap first left open here is now closed. An edit made while a background walk is still running (say during the vault-open walk, before the cache has read the vault) used to walk synchronously because the cache had not overrun yet. <code>RefreshTreeAfterEditAsync</code> now also goes async when <code>TreeReady</code> has not completed. The new walk moves the generation forward, so the open walk drops its now-stale answer. Pinned by <code>During_the_first_walk_a_new_note_walks_off_the_UI_thread</code>, which fails without the check.</p>
+</div>
+</section>
+
+<h2 id="good">Good practices</h2>
+<ul class="good">
+  <li><strong>One walk, one snapshot.</strong> <code>VaultService.CurrentSnapshot</code> answers the tree, the note list, folders and display names from one cached walk, invalidated by revision. The walk runs outside the lock so the watcher thread never stalls.</li>
+  <li><strong>Content cache keyed by write stamp</strong> (<code>NoteContentCache</code>) with explicit <code>Store</code> after the app's own writes, bounded by characters rather than count. The stamp check is exactly one <code>FileInfo</code> per read.</li>
+  <li><strong>Debouncing everywhere it matters:</strong> preview 250 ms, search 250 ms, replace rescan 250 ms, watcher refresh 300 ms, diagram re-rasterize 150 ms after resize. <code>MarkdownView.QueueRebuild</code> coalesces several property changes into one rebuild per dispatcher pass.</li>
+  <li><strong>Tree reconciliation</strong> (<code>TreeNodeViewModel.Reconcile</code>) keeps existing rows and uses <code>Move</code> instead of remove-and-insert, so a refresh does not regenerate containers or lose expansion state.</li>
+  <li><strong>Watcher filters</strong> exclude <code>LastWrite</code> so autosaves do not rebuild the tree, and <code>IsQuiet</code> drops events under excluded folders without touching the disk.</li>
+  <li><strong>Unmanaged memory is owned:</strong> <code>DiagramCache</code> and <code>ImageCache</code> are bounded, dispose what they evict, and are disposed with the window. <code>DiagramView</code> borrows bitmaps by key rather than holding them. Leak tests exist for the replaced preview tree.</li>
+  <li><strong>Regex hygiene:</strong> <code>GeneratedRegex</code> in <code>SvgCssInliner</code> and <code>NoteTemplate</code>, a compiled <code>WordRegex</code>, a 2-second match timeout on user patterns in <code>MatchFinder</code>, and a deliberate choice not to compile short-lived ignore patterns.</li>
+  <li><strong>Length-preserving diacritic folding</strong> via a lookup table, with a fast path that returns the original string when nothing folds.</li>
+  <li><strong>No blocking async</strong> (<code>.Result</code>, <code>.Wait()</code>) anywhere; <code>async void</code> is confined to UI event handlers. No logging in hot paths.</li>
+  <li><code>NoteTitle.From</code> scans only the first 4096 characters; <code>MatchFinder.Apply</code> splices with a pre-sized <code>StringBuilder</code>; <code>ReplaceService.StillMatches</code> compares spans without allocating.</li>
+</ul>
+
+<h2 id="baseline">Baseline measurements</h2>
+<p class="top">Task 52, measured 2026-09-22 on an Intel Core Ultra 7 255H (16 cores), Windows 11 26200, .NET 10.0.10 x64, Release, local SSD. Vaults are generated by <code>VaultShape</code>: Swedish prose so folding always allocates, nested folders, sizes spread over an order of magnitude, a declared title on most notes. <strong>Local disk only &mdash; the OneDrive copy the review also asks for has not been measured, so every I/O number below is a floor.</strong></p>
+
+<h3>Vault-wide scans <span class="top">MdNotes.Tests/ScanBenchmark.cs &middot; MDNOTES_BENCH=1 &middot; median of 5</span></h3>
+<table>
+  <tr><th>Scan</th><th>500 notes</th><th>5,000 notes</th><th>20,000 notes</th></tr>
+  <tr><td>Tree walk, cold, titles on</td><td>45 ms</td><td>478 ms</td><td>1,902 ms</td></tr>
+  <tr><td>Tree walk, cold, titles off</td><td>2.7 ms</td><td>41 ms</td><td>127 ms</td></tr>
+  <tr><td>Tree walk, re-walk, warm</td><td>19 ms</td><td>207 ms</td><td>1,970 ms</td></tr>
+  <tr><td>Search, cold</td><td>67 ms</td><td>700 ms</td><td>3,967 ms</td></tr>
+  <tr><td>Search, warm</td><td>20 ms</td><td>178 ms</td><td>1,789 ms</td></tr>
+  <tr><td>Replace find, warm</td><td>16 ms</td><td>142 ms</td><td>1,536 ms</td></tr>
+  <tr><td class="top">Vault text</td><td class="top">1.4M chars</td><td class="top">13.8M chars</td><td class="top">55.0M chars, <b>over the 32M budget</b></td></tr>
+</table>
+<p>The 20,000-note column is the degraded cache: 31,999,396 chars held for 11,580 of 20,000 notes, so its &ldquo;warm&rdquo; rows are really cold ones. That is the state findings <a href="#f4">4</a> and <a href="#f21">21</a> describe, and it is why the warm re-walk there (1,970 ms) is no cheaper than the cold one.</p>
+
+<h3>Allocation while typing <span class="top">ScanBenchmark, GC counters around 9 debounced scans, cache warm</span></h3>
+<p>What <code>dotnet-counters monitor -p &lt;pid&gt; System.Runtime</code> would have shown, measured rather than watched: the word <code>kalkylark</code> typed one character at a time, one scan per keystroke.</p>
+<table>
+  <tr><th>Vault</th><th>Allocated, 9 keystrokes</th><th>Per keystroke</th><th>Gen0 / 1 / 2</th><th>LOH after</th></tr>
+  <tr><td>500 notes</td><td>26.2 MB</td><td>2.9 MB</td><td>4 / 2 / 2</td><td>0.0 MB</td></tr>
+  <tr><td>5,000 notes</td><td>262.7 MB</td><td><b>29.2 MB</b></td><td>23 / 3 / 2</td><td>1.0 MB</td></tr>
+  <tr><td>20,000 notes</td><td>4,828.3 MB</td><td><b>536.5 MB</b></td><td>429 / 160 / 26</td><td>1.9 MB</td></tr>
+</table>
+<p>This is finding <a href="#f3">3</a> in one number. A warm scan does no disk I/O, so essentially all of it is the folded copy of every note plus the <code>Lines</code> index &mdash; roughly twice the vault's text per keystroke, which is what 13.8M chars at 2 bytes each comes to at the 5,000-note size. Over budget it is 18&times; worse, because the re-read is added back on top.</p>
+
+<h3>Micro-benchmarks <span class="top">MdNotes.Benchmarks &middot; BenchmarkDotNet 0.15.4, default job</span></h3>
+<p><code>DiacriticFolder.Fold</code> &mdash; finding <a href="#f3">3</a>:</p>
+<table>
+  <tr><th>Input</th><th>Mean</th><th>Allocated</th><th>Note</th></tr>
+  <tr><td>2 KB note, Swedish</td><td>763 ns</td><td>4.3 KB</td><td>one copy of the note</td></tr>
+  <tr><td>2 KB note, ASCII only</td><td>618 ns</td><td>0 B</td><td>early-out returns the original</td></tr>
+  <tr><td>100 KB note, Swedish</td><td>82.4 &micro;s</td><td>205 KB</td><td>Gen0/1/2 all move: the copy is on the LOH</td></tr>
+  <tr><td>query word</td><td>7.8 ns</td><td>48 B</td><td>folding the needle is free</td></tr>
+</table>
+<p><code>NameMatch.Rank</code> &mdash; finding <a href="#f5">5</a>. Per call this is nothing: 5,000 notes at two calls each, 25 ns apiece, is 0.25 ms. The switcher's cost is the flattening and the sort, not the ranking.</p>
+<table>
+  <tr><th>Case</th><th>Mean</th><th>Allocated</th></tr>
+  <tr><td>no match (walks every tier)</td><td>25.6 ns</td><td>64 B</td></tr>
+  <tr><td>prefix match</td><td>19.2 ns</td><td>104 B</td></tr>
+  <tr><td>prefix match on the folded form</td><td>14.0 ns</td><td>64 B</td></tr>
+  <tr><td>exact match (returns before folding)</td><td>~0 ns</td><td>0 B</td></tr>
+</table>
+<p><code>QuickSwitcherViewModel.RefreshResults</code>, one keystroke &mdash; finding <a href="#f5">5</a>:</p>
+<table>
+  <tr><th>Query</th><th>500 notes</th><th>5,000 notes</th><th>Allocated at 5,000</th></tr>
+  <tr><td>empty (lists everything)</td><td>48.6 &micro;s</td><td>308 &micro;s</td><td>522 KB</td></tr>
+  <tr><td>narrow (few hits)</td><td>32.8 &micro;s</td><td>251 &micro;s</td><td>536 KB</td></tr>
+  <tr><td>broad (most notes hit)</td><td>66.1 &micro;s</td><td><b>428 &micro;s</b></td><td>664 KB</td></tr>
+</table>
+<p class="top">Tree warm, which is the normal case: <code>GetTree</code> returns the cached snapshot.</p>
+
+<p><code>FindNode</code> over a reconciled tree &mdash; finding <a href="#f6">6</a>. A <code>DragOver</code> pays this twice:</p>
+<table>
+  <tr><th>Lookup</th><th>500 notes (524 nodes)</th><th>5,000 notes (5,249 nodes)</th><th>Allocated at 5,000</th></tr>
+  <tr><td>first node in the tree</td><td>23.5 ns</td><td>22.0 ns</td><td>184 B</td></tr>
+  <tr><td>last node in the tree</td><td>12.1 &micro;s</td><td>122 &micro;s</td><td>304 KB</td></tr>
+  <tr><td>no such node (full walk)</td><td>12.0 &micro;s</td><td>129 &micro;s</td><td>304 KB</td></tr>
+</table>
+
+<p>Mermaid and SVG &mdash; findings <a href="#f10">10</a> and <a href="#f12">12</a>. The 4-node flowchart is what the generated vault plants (5,731 chars of SVG, 71 <code>var()</code>); the 13-node one is what a real note grows into (15,418 chars, 135 <code>var()</code>):</p>
+<table>
+  <tr><th>Step</th><th>4-node</th><th>13-node</th><th>Allocated, 13-node</th></tr>
+  <tr><td><code>MermaidRenderer.RenderSvg</code></td><td>54.0 &micro;s</td><td>149 &micro;s</td><td>291 KB</td></tr>
+  <tr><td><code>SvgCssInliner.Inline</code></td><td>31.0 &micro;s</td><td>244 &micro;s</td><td><b>5,267 KB</b></td></tr>
+  <tr><td><code>SvgSource.LoadFromSvg</code></td><td>&mdash;</td><td><b>3,591 &micro;s</b></td><td>1,618 KB</td></tr>
+  <tr><td>all three: the <code>DiagramView</code> constructor</td><td>&mdash;</td><td><b>4,442 &micro;s</b></td><td>7,176 KB</td></tr>
+</table>
+<p>Two things fall out of this. Inlining allocates <b>5.3 MB to produce a 15,418-character SVG</b>, and 1.9&times; the <code>var()</code> count costs 9&times; the allocation &mdash; the quadratic finding <a href="#f10">10</a> describes, now with a number on it. And the synchronous cost a keystroke inside a fence pays is <b>4.4 ms per changed diagram, 81% of it in <code>SvgSource.LoadFromSvg</code></b> rather than in Mermaid. The Mermaid render and the CSS inlining together are 0.85 ms of the 4.4; the remaining 3.6 ms is the SVG load, so moving only <code>MermaidRenderer.RenderSvg</code> off the UI thread &mdash; which is where finding <a href="#f12">12</a> points &mdash; would leave four fifths of the cost where it is.</p>
+
+<p><code>MarkdownView.Rebuild</code> &mdash; findings <a href="#f7">7</a> and <a href="#f8">8</a>. Notes built from the generated vault's own filler, mermaid fences excluded so this is the control tree alone:</p>
+<table>
+  <tr><th>Step</th><th>11 KB note</th><th>104 KB note</th><th>Allocated, 104 KB</th></tr>
+  <tr><td>Markdig parse</td><td>81 &micro;s</td><td>651 &micro;s</td><td>1,163 KB</td></tr>
+  <tr><td>rebuild the control tree</td><td>3.2 ms</td><td><b>56.0 ms</b></td><td><b>18,900 KB</b></td></tr>
+</table>
+<p>The review's own &ldquo;largest recurring CPU cost during ordinary typing&rdquo;, confirmed: <b>56 ms and 19 MB every 250 ms</b> on a 100 KB note, of which the parse is one percent. In Edit-only mode all of it goes into a preview nobody is looking at, which is finding <a href="#f7">7</a>. Gen2 collections move on every rebuild at this size.</p>
+
+<h3>Still to measure</h3>
+<p>Three of the review's items need a human at the keyboard or a tool this repo cannot drive:</p>
+<ul>
+  <li><b>A CPU call tree</b> &mdash; Visual Studio's CPU Usage tool or <code>dotnet-trace</code> over 30 s of Split-mode typing on a 100 KB note. The 56 ms above is the total; finding <a href="#f8">8</a> needs the split between <code>BlockRenderer</code>/<code>InlineRenderer</code>, Avalonia resource lookup and layout before its DynamicResource change can be justified. <em>Superseded 2026-10-03: task 58 measured the change itself A/B instead (58.4 &rarr; 48.3 ms per 100 KB rebuild), so the call tree is no longer needed for that decision.</em></li>
+  <li><b>Private bytes over a minute of editing inside a Mermaid fence</b> (VMMap or Task Manager), to size the unmanaged retention in finding <a href="#f12">12</a>. The managed side is measured above.</li>
+  <li><b>A vault on OneDrive</b> rather than a local SSD. Every scan number here is a floor, and finding <a href="#f1">1</a>'s freeze is worst exactly where the placeholders are.</li>
+</ul>
+
+<h2 id="profiling">Profiling and benchmarking recommendations</h2>
+<h3>Test data</h3>
+<ul>
+  <li>Generate a synthetic vault at three sizes (500, 5,000 and 20,000 notes) with Swedish text so folding always allocates, a few notes over 100 KB, a folder with several hundred photos, and a handful of Mermaid diagrams. Keep one copy on a local SSD and one under OneDrive to expose I/O latency.</li>
+</ul>
+<h3>Tools</h3>
+<p class="top">Task 52 turned the first and last of these into repeatable harnesses &mdash; the counters run into <code>ScanBenchmark</code> and the micro-benchmarks into <code>MdNotes.Benchmarks</code> &mdash; and their output is in <a href="#baseline">Baseline measurements</a>. The three that still need a person are listed there under <a href="#baseline">Still to measure</a>.</p>
+<ul>
+  <li><code>dotnet-counters monitor -p &lt;pid&gt; System.Runtime</code> while typing in the sidebar search box: watch allocation rate, gen0/gen1/gen2 counts and LOH size. This directly measures findings 3 and 4.</li>
+  <li><code>dotnet-trace collect -p &lt;pid&gt;</code> (or Visual Studio's CPU Usage tool) for a 30-second typing session in Split mode on a 100 KB note. Compare time in <code>BlockRenderer</code>/<code>InlineRenderer</code>, Avalonia resource lookup, Markdig parsing and layout. This decides whether finding 8 is worth doing.</li>
+  <li>Visual Studio's <code>.NET Object Allocation</code> tool for one search tick and one replace rescan, to confirm the per-note folded copies and <code>Lines</code> indexes.</li>
+  <li>Avalonia DevTools (F12) to count visual-tree nodes in the preview for a long note, and to watch layout passes while dragging in the sidebar.</li>
+  <li>Windows Task Manager or VMMap for private bytes while editing inside a Mermaid fence for a minute, to size the unmanaged retention from finding 12.</li>
+  <li>BenchmarkDotNet micro-benchmarks for <code>DiacriticFolder.Fold</code>, <code>SvgCssInliner.Inline</code> on a real Mermaid SVG, <code>NoteContentCache.Put</code> under budget pressure, and <code>QuickSwitcherViewModel.RefreshResults</code> over 5,000 items.</li>
+  <li>A <code>Stopwatch</code> around <code>ISearchService.Search</code> and <code>ReplaceService.Find</code>, logged in debug builds, gives the plain answer to "how long does the UI freeze" for finding 1.</li>
+</ul>
+
+<h2 id="closing">Priorities</h2>
+<h3>Most important findings</h3>
+<ul>
+  <li><a href="#f1">1</a> UI-thread scans, <a href="#f2">2</a> hidden per-note stats, <a href="#f3">3</a> per-scan folded copies. Together they define search latency, and 2 and 3 can be fixed without changing threading.</li>
+  <li><a href="#f7">7</a> rebuilding the hidden preview: the largest recurring CPU cost during ordinary typing.</li>
+  <li><a href="#f4">4</a> cache eviction: only matters above the character budget, but there it turns the cache off entirely.</li>
+</ul>
+<h3>Easy improvements</h3>
+<ul>
+  <li><a href="#f2">2</a> Look display names up from one snapshot in <code>Search</code>.</li>
+  <li><a href="#f9">9</a> <code>Regex.Count</code> instead of <code>Matches(...).Count</code>.</li>
+  <li><a href="#f10">10</a> Single-pass <code>StringBuilder</code> in <code>SvgCssInliner.Inline</code>.</li>
+  <li><a href="#f11">11</a> <code>Bitmap.DecodeToWidth</code> in <code>ImageCache.Get</code>.</li>
+  <li><a href="#f14">14</a> Allocation-free <code>PathScope.IsSameOrUnder</code>.</li>
+  <li><a href="#f3">3</a> Lazy <code>Lines</code> construction in <code>MatchFinder.Find</code>.</li>
+  <li><a href="#f19">19</a> Clear <code>_excluded</code> on <code>Close</code>.</li>
+</ul>
+<h3>Verify with a profiler or benchmark before changing</h3>
+<ul>
+  <li><a href="#f1">1</a> Moving scans off the UI thread: confirm the freeze is long enough to justify making <code>NoteContentCache</code> thread-safe.</li>
+  <li><a href="#f8">8</a> Replacing <code>DynamicResource</code> bindings with resolved brushes: measure its share of rebuild time first.</li>
+  <li><a href="#f12">12</a> Off-thread Mermaid rendering: time a real render before adding asynchrony to the preview.</li>
+  <li><a href="#f5">5</a> and <a href="#f6">6</a>: confirm switcher and drag lag on a 5,000-note vault before adding caches or parent links to the tree model.</li>
+  <li><a href="#f18">18</a> The vault walk: measure on a large vault; it may already be fast enough.</li>
+</ul>
+
+</main>
+</body>
+</html>

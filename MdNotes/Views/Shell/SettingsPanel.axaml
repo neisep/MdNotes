@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:MdNotes.Views.Shell"
+             xmlns:vm="using:MdNotes.ViewModels"
+             xmlns:m="using:MdNotes.Models"
+             x:Class="MdNotes.Views.Shell.SettingsPanel"
+             x:DataType="vm:SettingsViewModel">
+
+    <DockPanel>
+        <!-- Done stays out of the scroller: the card is now long enough to scroll past it. -->
+        <Button x:Name="DoneButton" DockPanel.Dock="Bottom" Classes="primary" Content="Done"
+                HorizontalAlignment="Right" Margin="0,20,0,0" Command="{Binding CloseCommand}" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560" Padding="0,0,8,0">
+        <StackPanel Spacing="4">
+            <TextBlock Text="Settings" FontSize="16" FontWeight="SemiBold"
+                       Foreground="{DynamicResource MdText}" Margin="0,0,0,12" />
+
+            <TextBlock Text="New notes" FontSize="13" FontWeight="Medium"
+                       Foreground="{DynamicResource MdTextMuted}" Margin="0,0,0,6" />
+
+            <TextBox x:Name="TemplateBox" Classes="search" FontSize="13"
+                     PlaceholderText="Templates/New note.md"
+                     Text="{Binding TemplatePath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+            <TextBlock Text="A note in this vault, used to fill every new note. Leave it empty for a blank note."
+                       FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <!-- '{}' escapes the leading brace so XAML does not read '{{' as a markup extension. -->
+            <TextBlock Text="{}{{title}}, {{date}} and {{time}} are filled in; {{date:dd MMMM yyyy}} sets the format."
+                       FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextFaint}" />
+            <TextBlock Text="{Binding TemplateStatus}"
+                       FontSize="12" Margin="0,6,0,16" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+
+            <TextBlock Text="Auto-save" FontSize="13" FontWeight="Medium"
+                       Foreground="{DynamicResource MdTextMuted}" Margin="0,0,0,6" />
+
+            <RadioButton GroupName="AutoSave" FontSize="13"
+                         Content="After a delay while typing"
+                         IsChecked="{Binding IsAfterDelay, Mode=OneWay}"
+                         Command="{Binding SetSaveModeCommand}"
+                         CommandParameter="{x:Static m:AutoSaveMode.AfterDelay}" />
+            <TextBlock Text="The file on disk keeps up with the screen."
+                       FontSize="12" Margin="28,0,0,8" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+
+            <RadioButton GroupName="AutoSave" FontSize="13"
+                         Content="When I leave the note"
+                         IsChecked="{Binding IsOnFocusChange, Mode=OneWay}"
+                         Command="{Binding SetSaveModeCommand}"
+                         CommandParameter="{x:Static m:AutoSaveMode.OnFocusChange}" />
+            <TextBlock Text="Saves on another note, another vault, closing the window or leaving the app — one write per sitting instead of one per pause."
+                       FontSize="12" Margin="28,0,0,8" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+
+            <RadioButton GroupName="AutoSave" FontSize="13"
+                         Content="Only when I press Ctrl+S"
+                         IsChecked="{Binding IsManual, Mode=OneWay}"
+                         Command="{Binding SetSaveModeCommand}"
+                         CommandParameter="{x:Static m:AutoSaveMode.Manual}" />
+            <TextBlock Text="Nothing is written until you ask. Leaving a note with unsaved text asks first, so a draft can be abandoned."
+                       FontSize="12" Margin="28,0,0,12" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="28,0,0,0"
+                        IsEnabled="{Binding IsDelayEnabled}">
+                <TextBlock Text="Delay" FontSize="13" VerticalAlignment="Center"
+                           Foreground="{DynamicResource MdTextMuted}" />
+                <NumericUpDown x:Name="DelayBox" Width="130" FontSize="13"
+                               Minimum="0.1" Maximum="300" Increment="0.25"
+                               FormatString="0.00"
+                               Value="{Binding DelaySeconds}" />
+                <TextBlock Text="seconds" FontSize="13" VerticalAlignment="Center"
+                           Foreground="{DynamicResource MdTextMuted}" />
+            </StackPanel>
+
+            <TextBlock Text="Note names" FontSize="13" FontWeight="Medium"
+                       Foreground="{DynamicResource MdTextMuted}" Margin="0,20,0,6" />
+
+            <CheckBox FontSize="13"
+                      Content="Show the title a note declares"
+                      IsChecked="{Binding UseNoteTitles, Mode=TwoWay}" />
+            <TextBlock Text="A YAML &apos;title:&apos; property, or the note&apos;s first heading. Links and renaming still use the file name, so nothing breaks when a heading changes — and turning this on means reading every note to build the sidebar."
+                       FontSize="12" Margin="28,0,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextFaint}" />
+
+            <TextBlock Text="Excluded files" FontSize="13" FontWeight="Medium"
+                       Foreground="{DynamicResource MdTextMuted}" Margin="0,20,0,6" />
+
+            <TextBox x:Name="ExcludeBox" Classes="search" FontSize="13"
+                     AcceptsReturn="True" Height="110"
+                     VerticalContentAlignment="Top"
+                     TextWrapping="NoWrap"
+                     PlaceholderText="node_modules&#x0a;/bin&#x0a;*.tmp"
+                     Text="{Binding ExcludedPatterns, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+            <TextBlock Text="One pattern per line, kept in this vault as .mdnotesignore. What it names is gone from the sidebar, search, the quick switcher and wikilinks — and never walked. Folders starting with a dot are already hidden."
+                       FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+            <TextBlock Text="name matches at any depth · name/ only folders · /name only at the root · * and ? within one name · ** any depth · # comments"
+                       FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextFaint}" />
+
+            <CheckBox FontSize="13" Margin="0,8,0,0"
+                      Content="Also use this vault&apos;s .gitignore"
+                      IsChecked="{Binding UseGitIgnore, Mode=TwoWay}" />
+            <TextBlock Text="The root .gitignore only, and its &apos;!&apos; exceptions are skipped — so a file that hides everything and lets one folder back in will hide everything here."
+                       FontSize="12" Margin="28,0,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextFaint}" />
+
+            <TextBlock Text="{Binding ExcludeStatus}"
+                       FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource MdTextMuted}" />
+
+        </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+
+</UserControl>

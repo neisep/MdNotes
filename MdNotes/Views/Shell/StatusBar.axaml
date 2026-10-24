@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MdNotes.ViewModels"
+             x:Class="MdNotes.Views.Shell.StatusBar"
+             x:DataType="vm:MainViewModel">
+  <Border Height="22"
+          Background="{DynamicResource MdSurfaceAlt}"
+          BorderBrush="{DynamicResource MdBorder}"
+          BorderThickness="0,1,0,0"
+          Padding="12,0"
+          IsVisible="{Binding Editor.HasNote}">
+    <DockPanel>
+      <!-- Right: Edit/Save status -->
+      <StackPanel DockPanel.Dock="Right"
+                  Orientation="Horizontal">
+        <TextBlock FontSize="12"
+                   Foreground="{DynamicResource MdTextMuted}"
+                   VerticalAlignment="Center"
+                   Text="{Binding Editor.SaveStatus}" />
+      </StackPanel>
+
+      <!-- Left: Word and character count -->
+      <TextBlock FontSize="12"
+                 Foreground="{DynamicResource MdTextMuted}"
+                 VerticalAlignment="Center">
+        <TextBlock.Text>
+          <MultiBinding StringFormat="{}{0} words · {1} characters">
+            <Binding Path="Editor.WordCount" />
+            <Binding Path="Editor.CharCount" />
+          </MultiBinding>
+        </TextBlock.Text>
+      </TextBlock>
+    </DockPanel>
+  </Border>
+</UserControl>

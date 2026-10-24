@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MdNotes.ViewModels"
+             x:Class="MdNotes.Views.Shell.Ribbon"
+             x:DataType="vm:MainViewModel"
+             Width="44">
+  <Border Background="{DynamicResource MdSurfaceAlt}"
+          BorderBrush="{DynamicResource MdBorder}"
+          BorderThickness="0,0,1,0">
+    <DockPanel>
+      <!-- Bottom: Theme and Open vault -->
+      <StackPanel DockPanel.Dock="Bottom"
+                  Spacing="4"
+                  Margin="4,8">
+        <!-- Settings -->
+        <Button Classes="icon"
+                Command="{Binding OpenSettingsCommand}"
+                ToolTip.Tip="Settings (Ctrl+,)">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.settings}" />
+        </Button>
+
+        <!-- Theme -->
+        <Button Classes="icon"
+                Command="{Binding CycleThemeCommand}"
+                ToolTip.Tip="{Binding ThemeMode, StringFormat='Theme: {0}'}">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.moon}" />
+        </Button>
+
+        <!-- Make MdNotes the Markdown handler; hides itself once it is -->
+        <Button Classes="icon"
+                Command="{Binding RegisterFileAssociationCommand}"
+                IsVisible="{Binding CanRegisterFileAssociation}"
+                ToolTip.Tip="Make MdNotes the default Markdown editor">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.file-check}" />
+        </Button>
+
+        <!-- Open vault -->
+        <Button Classes="icon"
+                Command="{Binding Workspace.OpenVaultCommand}"
+                ToolTip.Tip="Open vault (Ctrl+Shift+O)">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.folder-open}" />
+        </Button>
+      </StackPanel>
+
+      <!-- Top: Files, Search, New note, Quick switcher -->
+      <StackPanel DockPanel.Dock="Top"
+                  Spacing="4"
+                  Margin="4,8">
+        <!-- Files -->
+        <Button Classes="icon"
+                Command="{Binding ToggleSidebarCommand}"
+                Classes.active="{Binding IsSidebarVisible}"
+                ToolTip.Tip="Files">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.files}" />
+        </Button>
+
+        <!-- Search -->
+        <Button x:Name="SearchButton"
+                Classes="icon"
+                ToolTip.Tip="Search">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.search}" />
+        </Button>
+
+        <!-- New note -->
+        <Button Classes="icon"
+                Command="{Binding Workspace.NewNoteCommand}"
+                ToolTip.Tip="New note (Ctrl+N)">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.plus}" />
+        </Button>
+
+        <!-- Quick switcher -->
+        <Button Classes="icon"
+                Command="{Binding Workspace.OpenQuickSwitcherCommand}"
+                ToolTip.Tip="Quick switcher (Ctrl+O)">
+          <Path Classes="icon"
+                Data="{StaticResource Icon.command}" />
+        </Button>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

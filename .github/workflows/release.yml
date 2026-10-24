@@ -1,0 +1,77 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: MdNotes
+          - os: windows-latest
+            rid: win-x64
+            artifact: MdNotes.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test
+        run: dotnet test -c Release
+
+      - name: Publish
+        run: >
+          dotnet publish MdNotes -c Release -r ${{ matrix.rid }} --self-contained
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mdnotes-${{ matrix.rid }}
+          path: out/${{ matrix.artifact }}
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags for the changelog
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          cp artifacts/mdnotes-linux-x64/MdNotes release/mdnotes-linux-x86_64
+          chmod +x release/mdnotes-linux-x86_64
+          cp artifacts/mdnotes-win-x64/MdNotes.exe release/mdnotes-windows-x86_64.exe
+
+      - name: Generate changelog
+        run: bash .github/scripts/changelog.sh "${{ github.ref_name }}" > notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file notes.md \
+            release/mdnotes-linux-x86_64 \
+            release/mdnotes-windows-x86_64.exe

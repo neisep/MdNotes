@@ -1,0 +1,642 @@
+<title>Obsidian Request Backlog</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  :root {
+    --bg: #EDEFF1;
+    --surface: #FAFBFC;
+    --surface-2: #E4E8EB;
+    --ink: #131A20;
+    --muted: #5B6873;
+    --faint: #8A97A2;
+    --line: #D0D7DD;
+    --line-soft: #E0E6EA;
+    --accent: #2C5B79;
+    --accent-ink: #FFFFFF;
+    --heat: #B8541B;
+    --heat-track: #DDE2E6;
+    --win: #1E6B4F;
+    --win-bg: #DBEDE4;
+    --gap: #8A4A12;
+    --gap-bg: #F3E5D6;
+    --have: #3A5570;
+    --have-bg: #DEE7EF;
+    --na: #6B7580;
+    --na-bg: #E3E7EA;
+    --shadow: 0 1px 2px rgba(19,26,32,.06), 0 8px 24px -16px rgba(19,26,32,.28);
+    --sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    --display: "Archivo", "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1216;
+      --surface: #151C22;
+      --surface-2: #1D262E;
+      --ink: #E2E8ED;
+      --muted: #94A2AE;
+      --faint: #6C7A86;
+      --line: #27323B;
+      --line-soft: #1F2830;
+      --accent: #74AAC9;
+      --accent-ink: #0D1216;
+      --heat: #E08544;
+      --heat-track: #232D36;
+      --win: #6FD1A6;
+      --win-bg: #14312A;
+      --gap: #E0A467;
+      --gap-bg: #332414;
+      --have: #9FC0DA;
+      --have-bg: #17242F;
+      --na: #8C98A3;
+      --na-bg: #1C242B;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1216;
+    --surface: #151C22;
+    --surface-2: #1D262E;
+    --ink: #E2E8ED;
+    --muted: #94A2AE;
+    --faint: #6C7A86;
+    --line: #27323B;
+    --line-soft: #1F2830;
+    --accent: #74AAC9;
+    --accent-ink: #0D1216;
+    --heat: #E08544;
+    --heat-track: #232D36;
+    --win: #6FD1A6;
+    --win-bg: #14312A;
+    --gap: #E0A467;
+    --gap-bg: #332414;
+    --have: #9FC0DA;
+    --have-bg: #17242F;
+    --na: #8C98A3;
+    --na-bg: #1C242B;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding-inline: 16px; }
+
+  /* ---------- masthead ---------- */
+  header.masthead { padding-block: 40px 22px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--faint);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700; font-size: clamp(30px, 6vw, 46px);
+    line-height: 1.05; letter-spacing: -.022em; margin: 0 0 14px; text-wrap: balance;
+  }
+  .standfirst { font-size: 17px; color: var(--muted); max-width: 62ch; margin: 0 0 22px; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 0; padding: 0; list-style: none; }
+  .facts div { display: flex; flex-direction: column; gap: 1px; }
+  .facts dt { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--faint); }
+  .facts dd { margin: 0; font-family: var(--mono); font-size: 19px; font-weight: 600;
+    font-variant-numeric: tabular-nums; }
+
+  /* ---------- shortlist ---------- */
+  .shortlist {
+    margin-block: 28px; padding: 20px 22px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--heat); border-radius: 4px;
+  }
+  .shortlist h2 {
+    font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.005em;
+    margin: 0 0 4px;
+  }
+  .shortlist p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; max-width: 60ch; }
+  .shortlist ol { margin: 0; padding-left: 0; list-style: none; counter-reset: sl; }
+  .shortlist li {
+    counter-increment: sl; display: flex; align-items: baseline; gap: 10px;
+    padding-block: 7px; border-top: 1px solid var(--line-soft); font-size: 14.5px;
+  }
+  .shortlist li::before {
+    content: counter(sl); flex: 0 0 16px; font-family: var(--mono); font-size: 12px;
+    color: var(--faint); text-align: right;
+  }
+  .sl-main { min-width: 0; }
+  .sl-meta { color: var(--muted); white-space: nowrap; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding-block: 10px;
+  }
+  .toolbar-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .search {
+    flex: 1 1 200px; min-width: 0; font: inherit; font-size: 14.5px;
+    padding: 7px 11px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--surface); color: var(--ink);
+  }
+  .search::placeholder { color: var(--faint); }
+  select.sort {
+    font: inherit; font-size: 13.5px; padding: 7px 9px; border: 1px solid var(--line);
+    border-radius: 4px; background: var(--surface); color: var(--ink);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .chip {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: .01em;
+    padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px;
+    background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .chip .n { opacity: .6; margin-left: 5px; }
+  .count { font-family: var(--mono); font-size: 12px; color: var(--faint); padding-block: 8px 0; }
+
+  /* ---------- rows ---------- */
+  .rows { padding-block: 4px 56px; }
+  .row {
+    display: grid; grid-template-columns: 76px 1fr; gap: 16px;
+    padding-block: 18px; border-bottom: 1px solid var(--line-soft); scroll-margin-top: 130px;
+  }
+  .row:target { background: var(--surface); box-shadow: 0 0 0 10px var(--surface); border-radius: 3px; }
+  .tally { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 2px; }
+  .rank { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .likes {
+    font-family: var(--mono); font-size: 21px; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums; color: var(--heat);
+  }
+  .likes-label { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--faint); }
+  .bar { width: 100%; height: 3px; background: var(--heat-track); border-radius: 2px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--heat); border-radius: 2px; }
+
+  .body h3 { margin: 0 0 5px; font-family: var(--display); font-size: 16.5px; font-weight: 600;
+    line-height: 1.3; letter-spacing: -.008em; text-wrap: balance; }
+  .body h3 a { color: var(--ink); text-decoration: none; }
+  .body h3 a:hover { color: var(--accent); text-decoration: underline; }
+  .body h3 a::after { content: " ↗"; font-size: 11px; color: var(--faint); text-decoration: none; }
+  .problem { margin: 0 0 9px; font-size: 15px; color: var(--muted); max-width: 64ch; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    font-family: var(--mono); font-size: 11px; color: var(--faint); }
+  .tag { padding: 2px 7px; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); }
+  .status { padding: 2px 7px; border-radius: 3px; font-weight: 600; letter-spacing: .02em; }
+  .status.win  { background: var(--win-bg);  color: var(--win); }
+  .status.gap  { background: var(--gap-bg);  color: var(--gap); }
+  .status.have { background: var(--have-bg); color: var(--have); }
+  .status.na   { background: var(--na-bg);   color: var(--na); }
+  .status.done { background: var(--win-bg); color: var(--win); }
+  .row.done .problem { color: var(--faint); }
+  .row.done .likes { color: var(--win); }
+  .row.done .bar i { background: var(--win); }
+  .tick {
+    display: inline-block; margin-right: 6px; color: var(--win);
+    font-size: 14px; font-weight: 700; vertical-align: 1px;
+  }
+  .shortlist li.done .sl-main a { color: var(--muted); }
+  .anchor { color: var(--faint); text-decoration: none; }
+  .anchor:hover { color: var(--accent); }
+  .empty { padding: 48px 0; text-align: center; color: var(--faint); font-family: var(--mono); font-size: 13px; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 22px 44px; color: var(--muted); font-size: 13.5px; }
+  footer p { margin: 0 0 8px; max-width: 64ch; }
+  .totop {
+    position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    font-family: var(--mono); font-size: 11px; padding: 7px 11px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+    box-shadow: var(--shadow); cursor: pointer; z-index: 30;
+  }
+  .totop:hover { color: var(--accent); border-color: var(--accent); }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 58px 1fr; gap: 12px; }
+    .likes { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">MdNotes · competitive research · 17 Sep 2026</p>
+    <h1>Obsidian Request Backlog</h1>
+    <p class="standfirst">
+      Every open feature request in Obsidian's forum with meaningful support, ranked by likes, with
+      the problem each one is actually trying to solve and whether it is a gap in <strong>MdNotes</strong>.
+      Obsidian moves shipped requests to a separate <em>Feature archive</em> category, so everything
+      listed here is <strong>still unbuilt</strong>.
+    </p>
+    <dl class="facts">
+      <div><dt>Requests</dt><dd id="f-total">—</dd></div>
+      <div><dt>Likes counted</dt><dd id="f-likes">—</dd></div>
+      <div><dt>Gaps in MdNotes</dt><dd id="f-gaps">—</dd></div>
+      <div><dt>Implemented</dt><dd id="f-done">—</dd></div>
+    </dl>
+
+    <section class="shortlist">
+      <h2>Where MdNotes should look first</h2>
+      <p>
+        Most of this backlog depends on subsystems MdNotes does not have — Bases, Canvas, Publish,
+        Sync, mobile, plugins. These are the ones with real Obsidian demand that MdNotes could ship
+        against its current architecture. Items already marked <em>Implemented</em> drop off the list,
+        so what is left is what to build next.
+      </p>
+      <ol id="shortlist"></ol>
+    </section>
+  </header>
+</div>
+
+<div class="toolbar">
+  <div class="wrap">
+    <div class="toolbar-row">
+      <input id="q" class="search" type="search" placeholder="Search titles and problem statements…  (press /)" autocomplete="off">
+      <select id="sort" class="sort" aria-label="Sort order">
+        <option value="likes">Sort: likes</option>
+        <option value="views">Sort: views</option>
+        <option value="posts">Sort: discussion</option>
+        <option value="title">Sort: title</option>
+      </select>
+    </div>
+    <div class="chips" id="done-chips" role="group" aria-label="Filter by build progress"></div>
+    <div class="chips" id="status-chips" role="group" aria-label="Filter by MdNotes status"></div>
+    <div class="chips" id="cat-chips" role="group" aria-label="Filter by area"></div>
+    <div class="count" id="count"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <main class="rows" id="rows"></main>
+
+  <footer>
+    <p>
+      <strong>How to read the numbers.</strong> Obsidian has no formal vote counter; the forum uses
+      likes on a topic as the vote, which is why counts here are likes on the whole thread rather
+      than a single tally. Views and reply counts are included because a request with 120k views and
+      185 likes (Mermaid sizing) says something different from one with 3k views and the same likes.
+    </p>
+    <p>
+      <strong>Currency.</strong> Pulled from <code>forum.obsidian.md/c/feature-requests/8</code> on
+      17 September 2026, cross-checked against the official
+      <a href="https://obsidian.md/roadmap/">Obsidian roadmap</a>. Three of these are now on that
+      roadmap as planned or in progress and are marked as such.
+    </p>
+    <p>
+      <strong>MdNotes status</strong> is my read against the app as it stands in <code>PLAN.md</code>:
+      folder tree, Edit/Split/Reading, quick switcher, wikilinks, native Mermaid, full-text search,
+      fixed 750 ms autosave — no tabs, backlinks, tags, properties, outline, folding, templates or export.
+      That badge records the assessment made on the research date and is not revised as work lands; rows
+      MdNotes has shipped <em>since</em> are the ones marked <strong>Implemented</strong>.
+    </p>
+  </footer>
+</div>
+
+<button class="totop" id="totop" hidden>↑ top</button>
+
+<script>
+const CATS = {
+  editor:   "Editor",
+  markdown: "Markdown",
+  files:    "Files & explorer",
+  search:   "Search",
+  links:    "Links & backlinks",
+  meta:     "Tags & properties",
+  bases:    "Bases",
+  canvas:   "Canvas",
+  graph:    "Graph view",
+  publish:  "Publish",
+  sync:     "Sync & mobile",
+  export:   "Export & print",
+  shell:    "App shell",
+  platform: "Files on disk"
+};
+const STATUS = {
+  win:  ["Build this", "Real Obsidian demand, and cheap against MdNotes as it stands today."],
+  gap:  ["Gap",        "MdNotes lacks it too, but it is a larger build or lower leverage."],
+  have: ["MdNotes has it", "Already shipped in MdNotes — Obsidian users still want it."],
+  na:   ["Out of scope", "Depends on a subsystem MdNotes does not have."]
+};
+
+// id = forum topic id · l = likes · p = posts · v = views
+const D = [
+{i:15339,t:"Edit transcluded (embedded) notes in place",l:1078,p:207,v:31162,c:"editor",s:"gap",w:"An embed shows another note's content but is read-only, so fixing a typo means leaving the page you are working on, finding the source, editing it and coming back. People want the embed to be the note, so a document assembled from blocks can be edited where it is read. Obsidian has said this likely needs a full WYSIWYG editor first, which is why it has sat unbuilt for years."},
+{i:1602,t:"File Explorer custom sort",l:979,p:298,v:53332,c:"files",s:"win",d:1,w:"The sidebar sorts alphabetically or by date, and nothing else. Users whose vaults model a real structure — a book's chapters, a course syllabus, a project's phases — want a manual order that survives renames, because alphabetical order actively destroys the meaning of a sequence. The standard workaround is numeric filename prefixes, which everyone hates."},
+{i:2049,t:"Obsidian for web",l:949,p:247,v:257730,c:"platform",s:"na",w:"People want to reach their vault from a locked-down work machine, a Chromebook or a borrowed computer where they cannot install a desktop app. This is the single most-viewed request in the category, and it collides directly with Obsidian's local-files-first identity."},
+{i:7347,t:"Click links/files to open in new tab by default",l:907,p:277,v:90641,c:"shell",s:"na",w:"Clicking a link replaces the note you were reading, so following a reference costs you your place. Users want the browser behaviour they already have muscle memory for — the old note stays open, the new one opens beside it — rather than having to remember a modifier key every single time."},
+{i:6994,t:"Link types, link info, link metadata",l:822,p:213,v:49984,c:"links",s:"na",w:"A wikilink says two notes are related but not how. People building research or argument graphs want to say 'contradicts', 'cites', 'is a kind of' — so the graph and backlinks panel can answer real questions instead of just showing undifferentiated string. This is the core of what typed-knowledge-graph users leave for other tools."},
+{i:567,t:"Tag mass action: add, rename, delete across files",l:811,p:190,v:46830,c:"meta",s:"na",w:"Renaming a tag means a find-and-replace across the whole vault with no safety net, and there is no way to see what a tag rename would touch first. Users want tags to be first-class and refactorable the way filenames already are, so a taxonomy can evolve without turning into an archaeology project."},
+{i:63826,t:"Properties & Bases: support multi-level YAML",l:790,p:182,v:30531,c:"meta",s:"na",w:"Obsidian flattens nested YAML, so frontmatter written by any other tool — a static site generator, a Zotero export, a script — is silently mangled or refused. People want their notes to remain valid YAML documents that other software in their pipeline can read and write."},
+{i:1655,t:"Ignore accents and diacritics in search and quick switcher",l:773,p:153,v:11541,c:"search",s:"win",d:1,w:"Typing 'resume' does not find 'résumé', and typing 'jonkoping' does not find 'Jönköping'. Every non-English user hits this constantly: you must reproduce the exact diacritics to find your own note, which defeats the point of fuzzy search. A Unicode normalisation pass at the comparison point fixes it."},
+{i:687,t:"Use H1 or a YAML 'title' property as the display name",l:712,p:149,v:54835,c:"files",s:"gap",d:1,w:"The filename is the note's identity, so a title with a colon, slash or emoji is impossible, and renaming a note means touching the filesystem. Users want a stable, boring filename (or a UUID) on disk and a human title in the UI — the split that every serious document system makes."},
+{i:46671,t:"IDE-style navigation and tab reuse",l:671,p:162,v:22213,c:"shell",s:"na",w:"Opening links spawns tabs endlessly and there is no 'switch to the tab that already has this note'. People who spend their day in an IDE want its rules: a preview tab that gets replaced, pinned tabs that do not, and a jump-to-open-file that never duplicates. It is a request to stop manually gardening tab strips."},
+{i:64139,t:"Properties: customise how dates and times display",l:657,p:153,v:29192,c:"meta",s:"na",w:"Date properties render in the OS locale format, which is wrong for anyone whose notes are in one language and whose machine is in another, and unusable for anyone who needs ISO 8601 for downstream tooling. Users want the stored value and the displayed value decoupled."},
+{i:4395,t:"Global (vault-wide) search and replace",l:650,p:140,v:48193,c:"search",s:"win",d:1,w:"Search finds every occurrence across the vault and then leaves you to open each file and fix it by hand. People renaming a concept, fixing a recurring typo or migrating a syntax want to act on the result set they are already looking at. The absence pushes users out to ripgrep and sed on their own notes."},
+{i:27093,t:"Render block embeds inline",l:554,p:107,v:19292,c:"markdown",s:"gap",w:"An embedded block renders as a separate boxed chunk, which breaks the sentence it was meant to sit inside. Users writing composed documents want a transclusion to flow as text — quoting a definition mid-paragraph without a visible container around it."},
+{i:8850,t:"Reminders and notifications",l:554,p:117,v:36836,c:"shell",s:"na",w:"Notes capture tasks with dates but nothing ever tells you about them, so people keep a second app for anything time-bound and the vault stops being the single place they look. The ask is for the notes to be able to reach out, not just sit there."},
+{i:314,t:"Be the handler for .md files outside the vault",l:551,p:168,v:29133,c:"platform",s:"win",d:1,w:"Double-clicking a README in Explorer cannot open it in Obsidian unless that file happens to live in a vault, so people keep a second, lighter markdown editor installed purely for loose files. They want one markdown editor, not one for notes and one for everything else. Obsidian now lists 'Open individual Markdown files' as in progress."},
+{i:41789,t:"Global settings shared across vaults",l:520,p:161,v:24712,c:"shell",s:"gap",w:"Every vault is configured from scratch — hotkeys, theme, plugins, all of it — so anyone who separates work and personal notes maintains the same configuration twice and re-does it on every change. Users want vault-local content with machine-level preferences."},
+{i:874,t:"Allow [[links]] to folders",l:513,p:115,v:83021,c:"links",s:"win",d:1,w:"You can link to a note but not to a folder, so a hub note describing a project cannot point at the project's folder — you have to create an index note that duplicates the folder's existence. People want the folder itself to be addressable."},
+{i:50245,t:"Canvas: drawing and pen support",l:509,p:108,v:62405,c:"canvas",s:"na",w:"Canvas takes cards and arrows but not freehand marks, so anyone with a tablet and a stylus has to sketch elsewhere and import an image. The request is to think on the canvas rather than assemble on it."},
+{i:31015,t:"PDF highlighting and annotation as a core feature",l:498,p:107,v:66643,c:"export",s:"na",w:"Researchers read PDFs and want their highlights to become linkable blocks in the vault, instead of living in a separate reader whose annotations never reach their notes. Currently on Obsidian's roadmap as planned."},
+{i:49697,t:"Canvas: links in cards and arrows in graph view",l:469,p:108,v:15964,c:"canvas",s:"na",w:"Canvas and the graph are two disconnected pictures of the same vault — structure you build on a canvas is invisible to the graph and vice versa. Users want one model of their connections, not two."},
+{i:14230,t:"Disable auto-save or change its frequency",l:459,p:134,v:28155,c:"editor",s:"win",d:1,w:"Obsidian writes constantly, which is fine until the vault is a git repo that now has noise commits, a synced folder that fights itself, or a document you wanted to abandon without saving. Users are not asking to lose autosave — they want a knob, because 'the file on disk is always exactly what is on screen' is the wrong default when other tools are watching that file. MdNotes currently hardcodes a 750 ms debounce, so this is a settings toggle away."},
+{i:3090,t:"Drawing and sketching with a stylus or tablet",l:434,p:107,v:144746,c:"editor",s:"na",w:"Handwriting and diagramming are how a lot of people think, and today that means a plugin or a second app. The second-most-viewed request in the category — largely from students and anyone with an iPad."},
+{i:63806,t:"Properties Wrangler: insert, rename, remove properties vault-wide",l:431,p:68,v:18505,c:"meta",s:"na",w:"The same refactoring problem as tags, one level up: a property name chosen early cannot be changed later without editing every file. Metadata schemas evolve, and there is no tool for evolving them."},
+{i:11386,t:"Show nested tag structure in the graph",l:396,p:91,v:17439,c:"graph",s:"na",w:"Nested tags express a hierarchy that the graph flattens into unrelated dots. Users who organise by tag rather than by folder want the graph to show the taxonomy they actually built."},
+{i:25906,t:"Background sync on mobile",l:363,p:125,v:16541,c:"sync",s:"na",w:"Mobile only syncs while the app is open and in the foreground, so notes captured on a phone reliably arrive late and conflict. Now on Obsidian's roadmap as planned."},
+{i:10332,t:"Default template for new notes",l:362,p:90,v:21245,c:"files",s:"win",d:1,w:"Every new note starts empty, so anyone with a consistent note shape — frontmatter, a date, standard headings — types or pastes the same scaffold every time or installs a plugin for it. They want the blank page to come pre-shaped."},
+{i:224,t:"Definition lists",l:357,p:90,v:22024,c:"markdown",s:"gap",w:"Glossaries, term lists and API docs are the natural shape of a lot of technical notes, and markdown's definition-list syntax exists in most extended dialects but not here — so people fake it with bold text and line breaks that carry no structure."},
+{i:25412,t:"Auto-update links when a heading is renamed",l:351,p:80,v:12141,c:"links",s:"gap",w:"Renaming a note fixes its links; renaming a heading silently breaks every link that pointed into it. Users want block and heading references to be as durable as note references, otherwise fine-grained linking is a trap that punishes editing."},
+{i:52025,t:"Exclude files or folders from all indexers and parsers",l:347,p:104,v:25754,c:"files",s:"win",d:1,w:"A vault that also contains a code repo, an archive or a node_modules folder feeds thousands of irrelevant files into search, the graph and the quick switcher, and slows everything down. People want a real ignore list, not just a display filter."},
+{i:716,t:"Native AsciiDoc support",l:340,p:92,v:21136,c:"markdown",s:"na",w:"Technical writers whose documentation toolchain is AsciiDoc want to edit it in the same tool as their notes rather than maintain two formats. A recurring ask from the docs-as-code crowd specifically."},
+{i:915,t:"Run in portable mode",l:323,p:84,v:97345,c:"platform",s:"win",w:"Obsidian writes config to the user profile, so it cannot be carried on a USB stick or run on a machine where you have no install rights — exactly the locked-down corporate machines where a lot of people want it. The ask is config next to the executable."},
+{i:12049,t:"Use the note's name for its attachment subfolder",l:316,p:81,v:16046,c:"files",s:"gap",w:"Attachments pile into one shared folder, so deleting a note orphans its images and nobody can tell which image belonged to which note. Users want an attachment folder that tracks the note it belongs to."},
+{i:16384,t:"PDF export: make internal links work",l:310,p:88,v:20943,c:"export",s:"gap",w:"Exported PDFs lose their internal navigation, so a long document becomes a flat scroll and any table of contents in it is decorative. People sharing notes outside Obsidian want the export to still be a navigable document."},
+{i:41963,t:"Pop-out windows with their own sidebar",l:305,p:73,v:7481,c:"shell",s:"na",w:"A popped-out note is a bare pane with no file explorer, search or outline, so the second monitor can display a note but cannot be worked in. Users with two screens want a second real window, not a viewer."},
+{i:554,t:"Checkboxes inside tables",l:302,p:94,v:47286,c:"markdown",s:"gap",w:"Task lists work in prose and not in tables, so any checklist that also needs columns — a test matrix, a packing list with quantities, a review tracker — has to become a wall of bullets. The two most useful markdown structures do not compose."},
+{i:102639,t:"Bases: new-with-template button",l:292,p:34,v:8459,c:"bases",s:"na",w:"Rows created from a database view start empty rather than inheriting the shape the view implies, so every new entry is filled in by hand."},
+{i:32546,t:"UI and scripting support for embedded queries",l:291,p:88,v:8089,c:"search",s:"na",w:"Embedded queries are written as code blocks in a syntax you have to learn and cannot preview, which puts dynamic views out of reach for non-technical users. They want a builder, not a mini-language."},
+{i:962,t:"Restore scroll and cursor position per note",l:278,p:110,v:19719,c:"editor",s:"win",d:1,w:"Reopening a long note drops you at the top, so returning to a document you were mid-way through costs a scroll hunt every time. Small, constant friction — and a few lines of per-file state."},
+{i:1423,t:"Save node positions in graph view",l:266,p:113,v:15200,c:"graph",s:"na",w:"The graph re-simulates on every open, so any layout you arranged by hand is gone. Users who want the graph as a map they recognise, not a fresh cloud of dots, want it to stay put."},
+{i:195,t:"Render markdown in backlinks, search results and queries",l:256,p:70,v:11824,c:"links",s:"gap",w:"Context snippets show raw markdown, so a result is full of brackets, pipes and link syntax instead of the sentence you are scanning for. It makes the panels that are supposed to help you skim harder to skim."},
+{i:511,t:"Search text inside PDFs",l:245,p:52,v:20761,c:"search",s:"na",w:"PDFs stored in the vault are invisible to search, so the material people actually cite cannot be found from within their notes."},
+{i:4856,t:"Find and remove orphaned attachments",l:240,p:54,v:23113,c:"files",s:"gap",w:"Deleting a note leaves its images behind forever, so vaults accumulate megabytes of files nothing references and there is no safe way to identify them. A reachability check over the link graph would answer it."},
+{i:101593,t:"Bases: kanban view",l:236,p:43,v:11291,c:"bases",s:"na",w:"People tracking work in notes want a board, not a table. Currently in progress on Obsidian's roadmap."},
+{i:26908,t:"Access dotfiles and dotfolders",l:225,p:126,v:18291,c:"files",s:"gap",w:"Hidden files are invisible in the explorer, so editing a .gitignore, a .env or a CI config in the same vault as its documentation is impossible. Developers keep both in one folder and want one editor for it."},
+{i:45442,t:"Disable tabs altogether",l:218,p:80,v:12000,c:"shell",s:"have",w:"Some people want one note on screen at a time and find tab strips a source of accumulated clutter and lost context. Worth noting for MdNotes: its single-pane model is the thing 218 Obsidian users are asking to get back."},
+{i:15753,t:"PDF export on mobile",l:212,p:110,v:23886,c:"export",s:"na",w:"Exporting a note to share it is desktop-only, so anyone working from a phone cannot produce a shareable document at all."},
+{i:20975,t:"Self-hosted sync server",l:211,p:65,v:140045,c:"sync",s:"na",w:"Sync is a paid hosted service, and users in regulated environments — or who simply refuse third-party storage — want the same protocol pointed at their own box. One of the highest-viewed requests in the category."},
+{i:32411,t:"Build a graph from the folder structure",l:210,p:54,v:32069,c:"graph",s:"na",w:"The graph shows links and ignores hierarchy, so people who organise by folders see a picture of a vault they do not recognise. They want the structure they maintain to be the structure they see."},
+{i:2801,t:"Make #tags also [[pages]]",l:207,p:67,v:19046,c:"meta",s:"na",w:"A tag cannot hold a description, a definition or its own links, so anyone who wants to write about a concept has to keep a note and a tag with the same name in sync by hand. Users want one identity for a concept. Obsidian has resisted this as a deliberate model choice."},
+{i:1307,t:"Reorder bullets by drag and drop",l:200,p:50,v:12986,c:"editor",s:"gap",w:"Moving an item in a nested list means selecting exactly the right lines, cutting, finding the target and re-indenting — and getting the indentation wrong silently reparents children. People outlining want to grab an item and move it."},
+{i:67943,t:"Collapse properties by default",l:198,p:47,v:15069,c:"meta",s:"na",w:"Frontmatter renders as a block at the top of every note, so a note with ten properties pushes its first sentence below the fold. Users want metadata available but not in the way of the writing."},
+{i:37708,t:"Show reference counts on headings and blocks",l:197,p:62,v:6754,c:"links",s:"gap",w:"There is no signal that a heading is referenced elsewhere, so you can rewrite or delete a section without knowing anything depended on it. Users want the same 'this is load-bearing' cue that a code editor gives."},
+{i:2227,t:"Manage the trash from inside the app",l:195,p:28,v:8404,c:"files",s:"gap",w:"Deleted notes go to a .trash folder you have to open in a file manager to inspect or restore, so an accidental delete is recoverable only if you know where to look."},
+{i:17092,t:"Native inline properties (key:: value)",l:190,p:32,v:17911,c:"meta",s:"na",w:"Metadata is confined to frontmatter, but a lot of it belongs where the fact is written — a status next to the task, a source next to the quote. The syntax exists via Dataview; users want it in core so it survives without a plugin."},
+{i:107097,t:"Bases: let a note fall into multiple groups",l:185,p:40,v:3183,c:"bases",s:"na",w:"Grouping assigns each note to exactly one bucket, which breaks immediately for multi-valued properties like tags or authors."},
+{i:7019,t:"Let the user set Mermaid diagram size and alignment",l:185,p:51,v:121800,c:"markdown",s:"win",w:"Mermaid diagrams render at whatever size the renderer picks — usually too small to read or stretched across the pane — with no way to set a width, scale or alignment. 121,800 views makes this the most-read editor request in the category, and it has stayed open for years. MdNotes renders Mermaid natively via Mermaider and currently caps every diagram to the available width, so honouring a width/align attribute on the fence would be a genuine differentiator rather than parity."},
+{i:106,t:"Auto-create notes by linking to them",l:184,p:72,v:18067,c:"links",s:"have",w:"Writing [[Some Idea]] creates a link to nothing until you click it, so link-first writing leaves a trail of phantom notes. MdNotes already creates the note on click — though it always lands in the vault root, which is the part this thread argues about."},
+{i:51614,t:"Full preview of an embedded canvas",l:176,p:46,v:10432,c:"canvas",s:"na",w:"A canvas embedded in a note renders as a thumbnail with no text, so it conveys nothing about its contents."},
+{i:49619,t:"Canvas: properties tied to a canvas",l:173,p:73,v:9753,c:"canvas",s:"na",w:"Canvases carry no metadata, so they cannot be filtered, dated or surfaced by any query alongside notes."},
+{i:5933,t:"Sort search results by relevance",l:171,p:53,v:5838,c:"search",s:"win",w:"Results come back in file order, so a note whose title is the exact query can sit below fifty notes that mention it in passing. Users want the obvious answer first. Now on Obsidian's roadmap as planned — and a ranking function is cheap next to building search itself, which MdNotes already has."},
+{i:104383,t:"Bases: calendar view",l:169,p:21,v:9020,c:"bases",s:"na",w:"Date-bearing notes have no time-shaped view. On Obsidian's roadmap as planned."},
+{i:33718,t:"Better code blocks: wrapping, scrolling, smart indent",l:164,p:66,v:20605,c:"markdown",s:"win",w:"Long lines in a code block are clipped rather than wrapped or scrollable, and editing inside a fence has none of the indentation behaviour any editor gives you. Technical notes are largely code blocks, and this makes them worse to write than a plain text file."},
+{i:45865,t:"Split view commands on mobile phones",l:164,p:46,v:5604,c:"sync",s:"na",w:"Side-by-side panes are tablet-only, so the phone cannot show a note and its source together."},
+{i:6520,t:"Show preview cards for external URLs",l:163,p:41,v:33071,c:"markdown",s:"gap",w:"A pasted link is a bare string, so a note full of references gives no clue what any of them are without opening each one. People want the title and description inline."},
+{i:69436,t:"Close the remaining gaps between tags and properties",l:160,p:43,v:16628,c:"meta",s:"na",w:"Obsidian has two overlapping metadata systems with different capabilities, and users are asking which one to commit to — a design-direction thread as much as a feature request."},
+{i:51315,t:"Canvas: support tags in cards",l:158,p:57,v:10600,c:"canvas",s:"na",w:"Cards cannot be tagged, so canvas content is invisible to the vault's own organising system."},
+{i:28266,t:"Full file system access for the iOS app",l:157,p:81,v:35530,c:"sync",s:"na",w:"iOS sandboxing keeps the vault inside the app, so an existing folder on iCloud or a file provider cannot simply be opened. An Apple-platform constraint users want worked around."},
+{i:20341,t:"Remember the backlinks-in-document setting",l:157,p:53,v:6119,c:"links",s:"gap",w:"The in-document backlinks section resets, so a preference you set has to be set again. Small, but it fires on every note."},
+{i:16389,t:"Embed files stored outside the vault",l:157,p:65,v:17465,c:"markdown",s:"gap",w:"Only vault-internal files can be embedded, so a large media library has to be duplicated into the vault or left unlinked. People want to reference a video where it already lives."},
+{i:28416,t:"Inline footnotes in live preview",l:155,p:50,v:8550,c:"markdown",s:"win",w:"Inline footnote syntax parses in reading mode but not while editing, so writing an annotated document means constantly switching views to see whether it worked. Anyone writing academically hits this on every note."},
+{i:29361,t:"Option for Enter to make a new paragraph",l:152,p:65,v:11805,c:"editor",s:"gap",w:"Enter inserts a single newline, which markdown treats as a continuation of the same paragraph, so prose writers get one long paragraph unless they learn to press Enter twice. The default fights how everyone else's word processor behaves."},
+{i:13947,t:"Publish: password-protect individual notes",l:152,p:70,v:6692,c:"publish",s:"na",w:"A published site is all-or-nothing, so one private page means a second site."},
+{i:8276,t:"Fold and unfold headings to a given level",l:151,p:56,v:13839,c:"editor",s:"win",w:"Long documents can be folded one heading at a time and no other way, so there is no 'show me the level-2 outline of this note'. Users want to collapse a document to its skeleton and drill in — the behaviour every outliner and IDE has."},
+{i:46444,t:"A type system for notes with database-like views",l:151,p:26,v:11400,c:"shell",s:"na",w:"The flagship 'super' request behind Bases: notes of a kind should share a schema so they can be validated, queried and listed as data. Partly answered by Bases; the thread argues it is not answered fully."},
+{i:16431,t:"Captions for images",l:150,p:52,v:65129,c:"markdown",s:"win",w:"There is no caption syntax, so figures are labelled with an italic line underneath that carries no structure, does not travel with the image and cannot be numbered. 65k views for what is, in a renderer you control, a figure/figcaption pair."},
+{i:5341,t:"Render text in the outline pane",l:148,p:59,v:10383,c:"editor",s:"win",w:"Headings appear in the outline as raw markdown, so a heading containing a link or formatting shows as bracket soup in the one panel meant for orientation. MdNotes has no outline pane at all — which is table stakes for long documents."},
+{i:9282,t:"PDF export with a table of contents and bookmarks",l:147,p:51,v:12617,c:"export",s:"gap",w:"Exported PDFs are flat, so a 40-page document has no bookmark sidebar and no navigable TOC. People sharing notes with colleagues want a document that behaves like a document."},
+{i:764,t:"Choose which file types show in the explorer",l:147,p:39,v:30128,c:"files",s:"win",w:"The explorer shows markdown plus a fixed set of recognised types, so either you cannot see the files you care about or you drown in ones you do not. Users want to decide."},
+{i:49318,t:"Canvas: hotkeys for adding, navigating and colouring",l:145,p:39,v:11953,c:"canvas",s:"na",w:"Canvas is mouse-only, so building a diagram is slower than it should be for anyone who works from the keyboard."},
+{i:8599,t:"Stop showing a note in unlinked mentions",l:142,p:39,v:6077,c:"links",s:"gap",w:"The unlinked-mentions panel flags every incidental occurrence of a common word, so for a note called 'Test' or 'API' it is pure noise and cannot be dismissed per note."},
+{i:6461,t:"Adjust graph font size",l:141,p:52,v:8765,c:"graph",s:"na",w:"Graph labels are unreadable on a high-DPI display or in a screenshot, and there is no setting for it."},
+{i:45036,t:"Tab stacks / sliding panes",l:140,p:49,v:11395,c:"shell",s:"na",w:"Users want the sliding-panes reading model — a breadcrumb trail of notes you can scroll back through — rather than a tab strip that loses the path you took to get here."},
+{i:54905,t:"Printing",l:140,p:50,v:4159,c:"export",s:"gap",w:"There is no print command; you export to PDF and print that, which loses control over page breaks, margins and headers. Users want the platform's print dialog."},
+{i:5289,t:"Search operators for created and modified dates",l:139,p:43,v:6764,c:"search",s:"win",w:"Search has no time dimension, so 'what did I write last week' is unanswerable from the search box. Filesystem timestamps are already there; the filter is not."},
+{i:5022,t:"Text autocorrection in core",l:136,p:35,v:18095,c:"editor",s:"gap",w:"Common typos and smart-quote substitutions that every other writing tool does are absent, so long-form writing in Obsidian produces more errors than the same writing elsewhere."},
+{i:49206,t:"Publish: support Canvas",l:136,p:50,v:7680,c:"publish",s:"na",w:"Canvases cannot be published, so the visual artefacts people build cannot be shared through the sharing feature. On Obsidian's roadmap as planned."},
+{i:4247,t:"Configure how graph node size is calculated",l:135,p:48,v:17114,c:"graph",s:"na",w:"Node size is fixed to link count, which makes hubs dominate and hides everything else. Users want to size by recency, word count or their own property."},
+{i:1045,t:"Link all unlinked mentions in one click",l:135,p:58,v:12822,c:"links",s:"gap",w:"Converting mentions to links is a per-occurrence click, so retrofitting links across an existing vault is hours of clicking. People want a reviewed bulk action."},
+{i:11195,t:"Persist local graph settings",l:133,p:46,v:8176,c:"graph",s:"na",w:"Depth, filters and colour groups reset every time the local graph opens, so a configuration you rely on has to be rebuilt on each use."},
+{i:4232,t:"Fold embedded and transcluded notes",l:133,p:36,v:12018,c:"markdown",s:"gap",w:"An embed always renders in full, so a note that transcludes several others is unmanageably long and there is no way to see its own structure."},
+{i:49429,t:"Canvas: auto-resize cards while typing",l:132,p:27,v:8037,c:"canvas",s:"na",w:"Cards keep their initial size, so text is clipped until you stop and resize by hand — an interruption on every card."},
+{i:3424,t:"Highlight open files in the graph",l:131,p:22,v:5296,c:"graph",s:"na",w:"The graph gives no indication of where you currently are, so it cannot be used to navigate from context."},
+{i:14617,t:"UUIDs for note links in the URL scheme",l:130,p:52,v:14158,c:"links",s:"gap",w:"External links into Obsidian are path-based, so renaming or moving a note breaks every bookmark, task-manager link and script that pointed at it. People want a stable identifier."},
+{i:10345,t:"Auto-transclude embedded query results",l:126,p:26,v:9723,c:"search",s:"na",w:"A query returns a list of links you still have to open one at a time; users want the matched content itself assembled into the page."},
+{i:6653,t:"Show headings and blocks in the graph",l:124,p:32,v:11893,c:"graph",s:"na",w:"The graph works at note granularity, so the fine-grained block links people carefully build are invisible in the view meant to show connections."},
+{i:11567,t:"Search operators for backlinks and forward links",l:119,p:36,v:13868,c:"search",s:"gap",w:"Search cannot express link structure, so 'notes that link to X but not Y' has to be assembled by hand from two panels."},
+{i:30351,t:"Android: camera button in the toolbar",l:116,p:51,v:12893,c:"sync",s:"na",w:"Capturing a whiteboard or a receipt into a note takes several taps through the OS picker, which is enough friction that people stop doing it."},
+{i:12352,t:"Progressive filtering in the tag pane",l:116,p:45,v:4677,c:"meta",s:"na",w:"Selecting a tag does not narrow the remaining tags to those that co-occur with it, so drilling into a taxonomy is guesswork."},
+{i:7313,t:"Drag and drop to create heading and block references",l:115,p:30,v:12162,c:"links",s:"gap",w:"Creating a block reference means copying a link from a context menu and pasting it, so precise linking is deliberate work rather than a gesture."},
+{i:1657,t:"Zoom in on a bullet",l:115,p:26,v:6957,c:"editor",s:"gap",w:"Outliner users want to focus a branch as if it were the whole document — the core interaction from Workflowy and Roam that makes deep outlines usable."},
+{i:63899,t:"Include properties in PDF export",l:114,p:24,v:5630,c:"export",s:"na",w:"Frontmatter is dropped on export, so the metadata that identifies a document — author, date, status — is missing from the version you actually send."},
+{i:49542,t:"Canvas: collapsible groups",l:114,p:34,v:6555,c:"canvas",s:"na",w:"Large canvases cannot be summarised, so the whole thing is always at full detail and impossible to survey."},
+{i:73866,t:"Toggle plaintext table editing in live preview",l:114,p:32,v:5016,c:"markdown",s:"have",w:"Live preview forces the visual table editor, and people who are faster in raw markdown want the source back. MdNotes' Split view already gives both at once, which is the thing being asked for here."},
+{i:4571,t:"Uppercase / lowercase commands",l:113,p:30,v:14567,c:"editor",s:"win",w:"There is no case-change command, so fixing a heading typed in the wrong case means retyping it. Standard in every editor; trivial to add."},
+{i:103074,t:"Bases: support for tasks",l:113,p:31,v:10230,c:"bases",s:"na",w:"Checkbox tasks inside note bodies are invisible to database views, so the one thing people most want to aggregate is the one thing it cannot see."},
+{i:4342,t:"Smart folders driven by tags",l:109,p:37,v:15594,c:"files",s:"gap",w:"Folders are physical and tags are not, so there is no saved view that behaves like a folder in the sidebar. Users want a virtual folder whose membership is a query."},
+{i:31780,t:"Mobile: keep the sync status icon visible",l:107,p:80,v:8428,c:"sync",s:"na",w:"You cannot tell whether a note has synced before closing the app, which is exactly when it matters."},
+{i:68164,t:"Show properties on published sites",l:107,p:54,v:6468,c:"publish",s:"na",w:"Publish drops frontmatter, so dates, authors and tags never reach the published page."},
+{i:6781,t:"Close to the system tray",l:106,p:50,v:12973,c:"shell",s:"gap",w:"Closing the window quits the app, so the global capture hotkey stops working and reopening means a cold start. People who capture throughout the day want it resident."},
+{i:6058,t:"Live collaborative editing",l:104,p:37,v:43887,c:"sync",s:"na",w:"Two people cannot edit a note at once; sync resolves by conflict, not by merge. Obsidian lists 'Multiplayer' on its roadmap as planned — it has not shipped, despite what several 2026 blog posts claim."},
+{i:1166,t:"Duplicate line shortcut",l:103,p:25,v:14700,c:"editor",s:"win",w:"No duplicate-line command, so repeating a list item or a table row is select-copy-paste-position. One of the first shortcuts anyone coming from a code editor reaches for."},
+{i:7564,t:"Adjustable readable line length",l:100,p:41,v:34131,c:"editor",s:"gap",w:"Readable line length is a fixed on/off, so on a wide monitor you choose between a narrow column and full width with nothing in between. Users want the measure as a number."},
+{i:9210,t:"Side-by-side images",l:99,p:45,v:39687,c:"markdown",s:"gap",w:"Images always stack vertically, so comparing two figures means an HTML table or a screenshot of both. A common need with an awkward workaround."},
+{i:51936,t:"Search within a canvas",l:98,p:23,v:4744,c:"canvas",s:"na",w:"A large canvas has no find, so locating a card means panning and reading."},
+{i:63812,t:"Recognise #tags written inside text properties",l:97,p:41,v:6430,c:"meta",s:"na",w:"Tags written in a property are inert strings, so metadata written one way works and the same metadata written another way does not."},
+{i:2949,t:"Recent vaults in the Windows taskbar jump list",l:97,p:36,v:4039,c:"shell",s:"gap",w:"Switching vaults means launching the app and going through its own picker, instead of right-clicking the taskbar icon like every other Windows app allows."},
+{i:15854,t:"Biometric or PIN lock on mobile",l:93,p:26,v:7071,c:"sync",s:"na",w:"An unlocked phone is an unlocked vault, which rules out journals and anything sensitive for people who hand their phone around."},
+{i:13644,t:"Option to use underscores for bold and italic",l:93,p:45,v:8747,c:"editor",s:"gap",w:"The formatting shortcuts emit asterisks, which conflicts with house styles and with linters in repos where the markdown is also source."},
+{i:20647,t:"Navigate back to the previous cursor position",l:93,p:19,v:2907,c:"editor",s:"gap",w:"Following a link within a note loses where you were, and back navigation only works between notes. The 'jump back' every IDE has."},
+{i:23019,t:"Publish: support rendering plugins",l:93,p:23,v:5172,c:"publish",s:"na",w:"Notes that render correctly locally break when published, because the plugins that made them render are not there."},
+{i:101040,t:"Bases: toggle filter groups on and off",l:92,p:14,v:1790,c:"bases",s:"na",w:"Filters must be deleted and rebuilt to compare views, so exploring data is destructive."},
+{i:4312,t:"Prompt for a filename when dragging in an image",l:91,p:25,v:6306,c:"files",s:"gap",w:"Dropped images keep names like Screenshot 2026-09-17 at 14.22.31.png, so the attachments folder becomes unsearchable within a week."},
+{i:63810,t:"A tag property type",l:90,p:46,v:7338,c:"meta",s:"na",w:"Properties cannot hold tags as tags, so a note's categorisation has to live in two incompatible places."},
+{i:32123,t:"Sync hidden files and folders",l:89,p:28,v:4943,c:"sync",s:"na",w:"Config, themes and plugins live in a dot-folder that sync skips, so a second machine is a fresh setup every time."},
+{i:4279,t:"Better tag visualisation in the graph",l:88,p:25,v:23197,c:"graph",s:"na",w:"Tags appear as ordinary nodes with no weight or grouping, so a tag-organised vault looks the same as an unorganised one."},
+{i:5049,t:"Reorder paragraphs by dragging",l:87,p:27,v:7050,c:"editor",s:"gap",w:"Restructuring a draft is cut and paste, with the usual risk of dropping text in the wrong place. Writers want to move a block the way they move a slide."},
+{i:5479,t:"Ctrl-click in reading mode to edit at that spot",l:86,p:21,v:5735,c:"editor",s:"win",w:"Switching from reading to editing drops the cursor where it last was, so fixing something you just read means finding it again in the source. Clicking the word you want to change is the obvious gesture — and directly relevant to MdNotes' Reading mode."},
+{i:7069,t:"Remember view mode per file",l:85,p:30,v:12094,c:"editor",s:"win",w:"View mode is global, so a reference note you always read and a draft you always edit open the same way. Per-file state that MdNotes could store alongside its existing view-mode setting."},
+{i:9516,t:"Same sort order for folders and files",l:85,p:63,v:14218,c:"files",s:"gap",w:"Folders sort separately from files and always sit on top, which scrambles any ordering scheme that mixes the two."},
+{i:17820,t:"Apple Watch app",l:84,p:13,v:7736,c:"sync",s:"na",w:"Capture without taking the phone out — the shortest possible path from thought to note."},
+{i:49779,t:"Canvas: link to a specific card or group",l:83,p:34,v:8616,c:"canvas",s:"na",w:"A canvas can only be linked as a whole, so a note cannot point at the part of the diagram it discusses."},
+{i:14874,t:"Toggle off automatic merging of external changes",l:83,p:73,v:12360,c:"platform",s:"gap",w:"When a file changes on disk under a third-party sync tool, Obsidian merges silently and people lose text. They want to be asked. Directly relevant to MdNotes, whose watcher already refreshes the tree but deliberately does not reload an open note."},
+{i:4202,t:"Navigate, move and indent by heading",l:82,p:23,v:13332,c:"editor",s:"gap",w:"Restructuring a document means selecting a section by hand rather than operating on it as a unit — no 'move this heading and everything under it'."},
+{i:18485,t:"CriticMarkup support",l:81,p:15,v:5687,c:"markdown",s:"gap",w:"There is no tracked-changes or suggestion syntax, so collaborative review has to happen outside the vault and come back as comments."},
+{i:1403,t:"Native EPUB support",l:78,p:24,v:7298,c:"markdown",s:"na",w:"Ebooks cannot be read or annotated in the vault, so reading notes are permanently separated from the reading."},
+{i:9067,t:"Undo a note deletion",l:78,p:17,v:21505,c:"files",s:"gap",w:"Deleting is immediate with no in-app undo, so the recovery path is the file system. A destructive action without a soft landing."},
+{i:64240,t:"Backlinks from property links in daily notes",l:77,p:24,v:3306,c:"links",s:"na",w:"Links written in properties do not always produce backlinks, so the graph disagrees with itself depending on where a link was written."},
+{i:11495,t:"Citations and bibliography",l:76,p:29,v:45970,c:"markdown",s:"gap",w:"Academic writing needs citation keys and a generated bibliography, and Obsidian has neither, so the writing moves to Zotero plus Word at exactly the point the notes become useful."},
+{i:101378,t:"Bases: access the note's body content",l:76,p:20,v:6359,c:"bases",s:"na",w:"Database views can only see properties, so the text of the note — the actual content — cannot be previewed or filtered on."},
+{i:11168,t:"Show tag-siblings in the local graph",l:76,p:24,v:3038,c:"graph",s:"na",w:"Notes sharing a tag but no link are unconnected in the graph, hiding exactly the latent relationships people open the graph to find."},
+{i:4934,t:"HEIC image support",l:75,p:16,v:4812,c:"markdown",s:"gap",w:"Photos straight from an iPhone do not render, so every image has to be converted before it can be used."},
+{i:6300,t:"Expose tags as CSS classes on graph nodes",l:74,p:21,v:10601,c:"graph",s:"na",w:"Graph colouring is limited to the built-in groups, and theme authors want to drive it from the vault's own taxonomy."},
+{i:101233,t:"Bases: edit multiple files at once",l:74,p:22,v:2792,c:"bases",s:"na",w:"Bulk metadata edits have to be done one note at a time, which is the main reason people still script their vaults."},
+{i:23899,t:"Obsidian Send",l:73,p:19,v:8815,c:"publish",s:"na",w:"Sharing one note requires publishing a whole site or exporting a file; users want a single-note share link."},
+{i:43075,t:"Customisable mouse actions with modifiers",l:73,p:24,v:3046,c:"shell",s:"gap",w:"Modifier-click behaviours are fixed, so users cannot make the mouse match the way they navigate."},
+{i:287,t:"Hoist a folder as the vault root",l:72,p:25,v:4182,c:"files",s:"gap",w:"There is no way to focus the explorer, search and graph on one project without making it a separate vault — so people split vaults and then ask for global settings."},
+{i:7933,t:"Do not save a blank untitled note",l:68,p:14,v:3427,c:"files",s:"win",w:"Pressing the new-note shortcut and changing your mind leaves an Untitled file on disk, so vaults slowly fill with empty notes. Directly relevant to MdNotes' autosave."},
+{i:40520,t:"Fold code blocks",l:67,p:18,v:18300,c:"markdown",s:"win",w:"A long code block cannot be collapsed, so a note with three scripts in it is unreadable as prose. Pairs naturally with heading folding."},
+{i:33687,t:"Left-click to edit a link in live preview",l:64,p:31,v:6836,c:"editor",s:"gap",w:"Clicking a link always follows it, so editing the link text requires a workaround — the click does the one thing you did not want."},
+{i:7204,t:"Use properties as variables in the note body",l:63,p:17,v:9617,c:"meta",s:"na",w:"A value defined in frontmatter cannot be referenced in the text, so the same fact is typed twice and drifts."},
+{i:102390,t:"Bases: Gantt and timeline views",l:63,p:12,v:2091,c:"bases",s:"na",w:"Project notes have dates and no way to see them on a timeline."},
+{i:26148,t:"Track created and modified dates internally",l:63,p:17,v:8522,c:"platform",s:"win",w:"Dates come from the filesystem, so a sync client, a git checkout or a backup restore rewrites every note's history at once. Users want the dates to be a property of the note, not of the file. A real correctness issue MdNotes inherits by default."},
+{i:104414,t:"Bases: add a graph view",l:63,p:17,v:2475,c:"bases",s:"na",w:"A filtered set of notes cannot be viewed as a graph, so the two ways of exploring a vault do not compose."},
+{i:6854,t:"OCR images so they become searchable",l:62,p:17,v:7050,c:"search",s:"na",w:"Screenshots and photographed pages are invisible to search, so a lot of captured material is effectively write-only."},
+{i:12709,t:"Share colour groups between global and local graphs",l:62,p:20,v:10344,c:"graph",s:"na",w:"Colour groups are configured twice, so the two graphs colour the same vault differently."},
+{i:1594,t:"Inline reference embeds",l:61,p:13,v:9012,c:"markdown",s:"gap",w:"Same shape as the block-embed request: people want a reference to appear as flowing text, not a boxed insert."},
+{i:5562,t:"Show tag-connected notes in the sidebar",l:61,p:17,v:5807,c:"meta",s:"na",w:"There is no 'other notes with this tag' panel next to the note, so tags are a search you run rather than context you see."},
+{i:52789,t:"Canvas: dot-based arrow connections",l:61,p:15,v:8026,c:"canvas",s:"na",w:"Arrows attach to card edges only, so complex diagrams cannot route cleanly."},
+{i:10975,t:"Sort a text selection alphabetically",l:61,p:21,v:24187,c:"editor",s:"win",w:"Sorting a list means pasting it into another tool and back. A standard editor command with 24k views on the request."},
+{i:11252,t:"Comments on published sites",l:61,p:14,v:4800,c:"publish",s:"na",w:"A published vault is one-way, with no route for a reader to respond."},
+{i:5294,t:"Choose line endings (CRLF / LF)",l:60,p:25,v:8509,c:"platform",s:"win",w:"Obsidian writes the platform's line endings, so a vault shared between Windows and macOS via git shows whole-file diffs on every save. A genuine problem for notes kept in a repo — which is MdNotes' likely audience."},
+{i:51552,t:"A spreadsheet section for tabular data",l:60,p:19,v:16594,c:"bases",s:"na",w:"Markdown tables are painful past a few rows and there is no calculation, so numeric work leaves for Excel and never comes back."},
+{i:22490,t:"Graph controls in Publish",l:60,p:25,v:3350,c:"publish",s:"na",w:"The published graph cannot be filtered or coloured, so it is decorative rather than navigational."},
+{i:3889,t:"Multi-level and alphabetic lists",l:59,p:14,v:25279,c:"markdown",s:"gap",w:"Numbering restarts and cannot be made legal-style (1.1, 1.1.1) or alphabetic, which rules out specs, contracts and anything with numbered clauses."},
+{i:4448,t:"Folders of tags",l:58,p:23,v:9225,c:"meta",s:"na",w:"Nested tags exist but cannot be managed as a tree, so a large taxonomy has no maintenance surface."},
+{i:16079,t:"Do not fold across a horizontal rule",l:57,p:14,v:5276,c:"editor",s:"gap",w:"Folding swallows content past a rule, so documents that use rules as separators fold wrongly."},
+{i:54379,t:"Export a canvas as SVG",l:57,p:13,v:6134,c:"canvas",s:"na",w:"A canvas can only leave as a raster image, so diagrams cannot be embedded in documents at print quality."},
+{i:29660,t:"Better find and replace in the current file",l:56,p:27,v:2393,c:"search",s:"win",w:"In-file find has no match-case, whole-word, regex or search-in-selection, so any non-trivial edit goes out to another editor. The cheap half of vault-wide replace, and the right place to start."},
+{i:621,t:"Relative line numbers",l:56,p:14,v:12847,c:"editor",s:"gap",w:"Vim users navigate by relative line number, and without them the Vim mode is missing its main motion aid."},
+{i:17549,t:"Pandoc-style citations",l:55,p:15,v:4523,c:"markdown",s:"gap",w:"Notes cannot be handed to Pandoc as-is because the citation syntax is not supported, so the academic export path needs a conversion step."},
+{i:6410,t:"Tag aliases",l:54,p:16,v:3712,c:"meta",s:"na",w:"Notes cannot carry the same tag under two names, so merging vocabularies means rewriting one of them."},
+{i:9323,t:"Update links when an alias is renamed",l:53,p:12,v:3766,c:"links",s:"gap",w:"Renaming an alias breaks the links that used it, silently — the same durability gap as heading references."},
+{i:47778,t:"Spotlight search on iOS",l:52,p:19,v:4221,c:"sync",s:"na",w:"Notes are invisible to the OS search that iOS users reach for first."},
+{i:965,t:"App menus in the macOS menu bar",l:52,p:10,v:5491,c:"shell",s:"gap",w:"Commands live in a command palette rather than the platform menu bar, so Obsidian does not behave like a Mac app and is harder to learn."},
+{i:4863,t:"Copy links out of the tag and backlinks panes",l:51,p:14,v:4662,c:"links",s:"gap",w:"A panel full of exactly the links you want cannot be copied as a list, so you retype what is already on screen."},
+{i:4637,t:"Flat view in the explorer",l:51,p:15,v:4359,c:"files",s:"gap",w:"There is no way to see all files ignoring folders, which is what you want when hunting for something whose location you have forgotten."},
+{i:90600,t:"Grid, card and gallery layouts",l:50,p:19,v:4847,c:"bases",s:"na",w:"Image-heavy vaults — recipes, references, moodboards — are browsed as a text list, which is the wrong shape for looking at pictures."},
+{i:1001,t:"Icons instead of dots in the graph",l:49,p:16,v:5210,c:"graph",s:"na",w:"Every node looks identical, so the graph cannot show what kind of thing each note is."},
+{i:63816,t:"Preserve inline YAML arrays",l:49,p:15,v:1410,c:"meta",s:"na",w:"Obsidian rewrites tags: [a, b] into a block list, so it silently reformats files that other tools wrote — a diff on every touched note."},
+{i:34723,t:"A simple way to copy inline code",l:48,p:15,v:6655,c:"markdown",s:"win",w:"Fenced blocks get a copy button and inline code does not, so short commands — the ones you copy most — have to be selected by hand."},
+{i:9023,t:"Add an alias from a link's context menu",l:48,p:10,v:3048,c:"links",s:"gap",w:"When you write [[Note|other name]], the alias is not recorded on the target, so the same alias has to be typed again next time."},
+{i:106822,t:"Bases: fold groups in a view",l:48,p:16,v:940,c:"bases",s:"na",w:"Grouped views are always fully expanded, so a large base cannot be surveyed."},
+{i:4755,t:"Date functions in templates",l:47,p:14,v:9753,c:"files",s:"gap",w:"Core templates only insert today's date, so anything relative — yesterday, next Monday — needs a plugin."},
+{i:49960,t:"Canvas: rectangular arrow routing",l:46,p:14,v:3309,c:"canvas",s:"na",w:"Curved arrows crossing each other make flowcharts unreadable at any size."},
+{i:102724,t:"Bases: conditional formatting",l:45,p:10,v:2822,c:"bases",s:"na",w:"Rows cannot be coloured by value, so a status column conveys nothing at a glance."},
+{i:102378,t:"Bases: show excluded files",l:41,p:15,v:957,c:"bases",s:"na",w:"There is no way to check what a filter is hiding, so a wrong filter is invisible."},
+{i:8208,t:"Show folders as regions in the graph",l:41,p:19,v:6661,c:"graph",s:"na",w:"Folder membership is invisible in the graph, so the two organising systems never appear together."},
+{i:2571,t:"Set the language for inline code highlighting",l:39,p:17,v:11247,c:"markdown",s:"gap",w:"Inline code is never highlighted, so a single-line snippet reads differently from the same snippet in a fence."}
+];
+
+/* ---------- derived ---------- */
+const MAXL = Math.max(...D.map(d => d.l));
+const fmt = n => n.toLocaleString("en-US").replace(/,/g, " ");
+
+document.getElementById("f-total").textContent = D.length;
+document.getElementById("f-likes").textContent = fmt(D.reduce((a, d) => a + d.l, 0));
+document.getElementById("f-gaps").textContent =
+  D.filter(d => (d.s === "win" || d.s === "gap") && !d.d).length;
+document.getElementById("f-done").textContent = `${D.filter(d => d.d).length} of ${D.length}`;
+
+/* shortlist: the highest-liked "build this" items */
+const SHORT = D.filter(d => d.s === "win" && !d.d).sort((a, b) => b.l - a.l).slice(0, 8);
+document.getElementById("shortlist").innerHTML = SHORT.map(d =>
+  `<li class="${d.d ? "done" : ""}"><span class="sl-main"><a href="#t-${d.i}">${d.t}</a> <span class="sl-meta">· ${fmt(d.l)} likes · ${fmt(d.v)} views</span></span></li>`
+).join("");
+
+/* ---------- filters ---------- */
+const state = { q: "", status: new Set(), cat: new Set(), done: new Set(), sort: "likes" };
+
+function chipRow(el, entries, key) {
+  el.innerHTML = entries.map(([k, label, n]) =>
+    `<button class="chip" type="button" data-k="${k}" aria-pressed="false">${label}<span class="n">${n}</span></button>`
+  ).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    const k = b.dataset.k;
+    if (state[key].has(k)) state[key].delete(k); else state[key].add(k);
+    b.setAttribute("aria-pressed", state[key].has(k));
+    render();
+  });
+}
+
+const countBy = (f, k) => D.filter(d => d[f] === k).length;
+chipRow(document.getElementById("done-chips"), [
+  ["yes", "Implemented", D.filter(d => d.d).length],
+  ["no",  "Not done",    D.filter(d => !d.d).length]
+], "done");
+chipRow(document.getElementById("status-chips"),
+  Object.keys(STATUS).map(k => [k, STATUS[k][0], countBy("s", k)]), "status");
+chipRow(document.getElementById("cat-chips"),
+  Object.keys(CATS).map(k => [k, CATS[k], countBy("c", k)])
+    .filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]), "cat");
+
+const q = document.getElementById("q");
+q.addEventListener("input", () => { state.q = q.value.trim().toLowerCase(); render(); });
+document.getElementById("sort").addEventListener("change", e => { state.sort = e.target.value; render(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement !== q) { e.preventDefault(); q.focus(); q.select(); }
+});
+
+/* ---------- render ---------- */
+const rowsEl = document.getElementById("rows");
+const countEl = document.getElementById("count");
+
+function render() {
+  let list = D.filter(d => {
+    if (state.status.size && !state.status.has(d.s)) return false;
+    if (state.cat.size && !state.cat.has(d.c)) return false;
+    if (state.done.size && !state.done.has(d.d ? "yes" : "no")) return false;
+    if (state.q && !(d.t + " " + d.w).toLowerCase().includes(state.q)) return false;
+    return true;
+  });
+
+  const rankOf = new Map(D.slice().sort((a, b) => b.l - a.l).map((d, n) => [d.i, n + 1]));
+  const cmp = {
+    likes: (a, b) => b.l - a.l,
+    views: (a, b) => b.v - a.v,
+    posts: (a, b) => b.p - a.p,
+    title: (a, b) => a.t.localeCompare(b.t)
+  }[state.sort];
+  list.sort(cmp);
+
+  countEl.textContent = list.length === D.length
+    ? `${D.length} requests`
+    : `${list.length} of ${D.length} requests`;
+
+  if (!list.length) {
+    rowsEl.innerHTML = `<p class="empty">Nothing matches that filter.</p>`;
+    return;
+  }
+
+  rowsEl.innerHTML = list.map(d => {
+    const url = `https://forum.obsidian.md/t/${d.i}`;
+    const pct = Math.max(3, Math.round(d.l / MAXL * 100));
+    const [label, why] = STATUS[d.s];
+    const tick = d.d ? `<span class="tick" aria-hidden="true">✓</span>` : "";
+    const done = d.d
+      ? `<span class="status done" title="Shipped in MdNotes since this list was compiled.">Implemented</span>`
+      : "";
+    return `<article class="row${d.d ? " done" : ""}" id="t-${d.i}" aria-label="${d.t} — ${d.d ? "implemented" : "not done"}">
+      <div class="tally">
+        <span class="rank">#${rankOf.get(d.i)}</span>
+        <span class="likes">${fmt(d.l)}</span>
+        <span class="likes-label">likes</span>
+        <span class="bar"><i style="width:${pct}%"></i></span>
+      </div>
+      <div class="body">
+        <h3>${tick}<a href="${url}" target="_blank" rel="noopener">${d.t}</a></h3>
+        <p class="problem">${d.w}</p>
+        <p class="meta">
+          <span class="tag">${CATS[d.c]}</span>
+          <span class="status ${d.s}" title="${why}">${label}</span>${done}
+          <span>${fmt(d.v)} views</span><span>·</span><span>${fmt(d.p)} posts</span>
+          <span>·</span><a class="anchor" href="#t-${d.i}">#t-${d.i}</a>
+        </p>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+render();
+if (location.hash) { const el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
+
+/* ---------- back to top ---------- */
+const totop = document.getElementById("totop");
+totop.addEventListener("click", () => window.scrollTo({ top: 0 }));
+addEventListener("scroll", () => { totop.hidden = scrollY < 700; }, { passive: true });
+</script>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <!-- BenchmarkDotNet refuses to run a Debug build, and says so rather than producing bad numbers. -->
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
+    <!-- The preview is an Avalonia control tree; rebuilding one needs a platform, not a window. -->
+    <PackageReference Include="Avalonia.Headless" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MdNotes\MdNotes.csproj" />
+    <!-- One definition of what a generated note looks like, shared with ScanBenchmark as source
+         rather than as a project reference: the benchmarks must not drag in xunit. -->
+    <Compile Include="..\MdNotes.Tests\VaultShape.cs" Link="VaultShape.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+</Project>

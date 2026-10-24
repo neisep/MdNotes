@@ -1,0 +1,13 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MdNotes.Views.Dialogs.MessageDialog"
+        Icon="/Assets/mdnotes.ico"
+        Width="420" SizeToContent="Height" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource MdSurface}">
+    <StackPanel Margin="20" Spacing="16">
+        <TextBlock x:Name="TitleBlock" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource MdText}" />
+        <TextBlock x:Name="Message" FontSize="13" Foreground="{DynamicResource MdText}" TextWrapping="Wrap" />
+        <StackPanel x:Name="Buttons" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" />
+    </StackPanel>
+</Window>

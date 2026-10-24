@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:MdNotes.Views.Shell"
+             xmlns:vm="using:MdNotes.ViewModels"
+             x:Class="MdNotes.Views.Shell.QuickSwitcher"
+             x:DataType="vm:QuickSwitcherViewModel">
+
+    <DockPanel>
+        <!-- Search input -->
+        <TextBox x:Name="Input" shell:ModalOverlay.InitialFocus="True"
+                 DockPanel.Dock="Top"
+                 Classes="search"
+                 Text="{Binding Query}"
+                 PlaceholderText="Find or create a note…"
+                 Margin="0,0,0,8" />
+
+        <!-- Results list -->
+        <ListBox ItemsSource="{Binding Results}"
+                 SelectedItem="{Binding Selected}"
+                 Background="Transparent"
+                 MaxHeight="340"
+                 DoubleTapped="OnResultsDoubleTapped">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:QuickSwitcherViewModel+SwitcherItem">
+                    <DockPanel>
+                        <!-- Plus icon for create items -->
+                        <Path Classes="icon"
+                               Width="14"
+                               Height="14"
+                               DockPanel.Dock="Left"
+                               Data="{StaticResource Icon.plus}"
+                               IsVisible="{Binding IsCreate}"
+                               Margin="0,0,8,0" />
+
+                        <!-- Item content -->
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" FontSize="14" />
+                            <TextBlock Text="{Binding Folder}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource MdTextMuted}"
+                                       IsVisible="{Binding Folder, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+
+</UserControl>

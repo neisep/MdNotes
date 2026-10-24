@@ -1,0 +1,117 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MdNotes.ViewModels"
+        xmlns:md="using:MdNotes.Views.Markdown"
+        xmlns:shell="using:MdNotes.Views.Shell"
+        x:Class="MdNotes.Views.MainWindow"
+        Icon="/Assets/mdnotes.ico"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding WindowTitle}"
+        Width="1400" Height="850" MinWidth="700" MinHeight="400"
+        Background="{DynamicResource MdSurface}"
+        Closing="OnClosing"
+        Deactivated="OnDeactivated">
+
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding Workspace.NewNoteCommand}" />
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding Workspace.OpenQuickSwitcherCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding Workspace.OpenVaultCommand}" />
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding ToggleEditReadingCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+H" Command="{Binding Workspace.OpenSearchReplaceCommand}" />
+        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding OpenSettingsCommand}" />
+    </Window.KeyBindings>
+
+    <Panel>
+        <!-- Main shell layout -->
+        <Grid x:Name="Shell" ColumnDefinitions="Auto,260,1,*" RowDefinitions="Auto,*,Auto">
+            <!-- Ribbon (left column) -->
+            <shell:Ribbon x:Name="Ribbon" Grid.Column="0" Grid.RowSpan="3" />
+
+            <!-- Sidebar (left content) -->
+            <shell:Sidebar x:Name="Sidebar" Grid.Column="1" Grid.RowSpan="3"
+                           DataContext="{Binding Workspace}" x:DataType="vm:VaultWorkspaceViewModel" />
+
+            <!-- Splitter between sidebar and content -->
+            <GridSplitter Grid.Column="2" Grid.RowSpan="3"
+                          Width="1"
+                          ResizeDirection="Columns"
+                          IsVisible="{Binding IsSidebarVisible}" />
+
+            <!-- Pane header (top of content) -->
+            <shell:PaneHeader Grid.Column="3" Grid.Row="0" />
+
+            <!-- Content area (editor + preview) -->
+            <Grid x:Name="Panes" Grid.Column="3" Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{Binding EditorColumnWidth}"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="{Binding PreviewColumnWidth}"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Editor TextBox -->
+                <TextBox Grid.Column="0"
+                         Classes="editor"
+                         Text="{Binding Editor.Text}"
+                         CaretIndex="{Binding Editor.CaretIndex, Mode=TwoWay}"
+                         IsEnabled="{Binding Editor.HasNote}"
+                         IsVisible="{Binding IsEditVisible}"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         TextWrapping="Wrap"
+                         MaxWidth="760"
+                         Margin="32,24"
+                         HorizontalAlignment="Stretch"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+
+                <!-- Inner splitter (between editor and preview) -->
+                <GridSplitter Grid.Column="1"
+                              Width="1"
+                              ResizeDirection="Columns"
+                              IsVisible="{Binding IsSplit}" />
+
+                <!-- Preview area -->
+                <!-- The view's own IsVisible as well: it is what MarkdownView watches to stop rebuilding
+                     while hidden, and to catch up once when shown. -->
+                <ScrollViewer Grid.Column="2" IsVisible="{Binding IsPreviewVisible}">
+                    <md:MarkdownView x:Name="Preview"
+                                     IsVisible="{Binding IsPreviewVisible}"
+                                     Document="{Binding Editor.PreviewDocument}"
+                                     LinkCommand="{Binding Workspace.OpenWikiLinkCommand}"
+                                     DiagramRenderer="{Binding Diagrams}"
+                                     BaseDirectory="{Binding Editor.CurrentDirectory}"
+                                     ContentRoot="{Binding Editor.ContentRoot}"
+                                     MaxWidth="760"
+                                     HorizontalAlignment="Center"
+                                     Margin="32,24" />
+                </ScrollViewer>
+
+                <!-- Empty state (overlay) -->
+                <shell:EmptyState Grid.Column="0" Grid.ColumnSpan="3" />
+            </Grid>
+
+            <!-- Status bar (bottom) -->
+            <shell:StatusBar Grid.Column="3" Grid.Row="2" />
+        </Grid>
+
+        <!-- The overlays. ModalOverlay carries the scrim, the card, Escape and click-outside; each
+             one supplies its content and the size of card that content wants. -->
+        <shell:ModalOverlay DataContext="{Binding Workspace.QuickSwitcher}" x:DataType="vm:QuickSwitcherViewModel"
+                            IsOpen="{Binding IsOpen}" CloseCommand="{Binding CloseCommand}"
+                            CardWidth="560" CardMaxHeight="420" CardMargin="0,80,0,0" CardPadding="8">
+            <shell:QuickSwitcher />
+        </shell:ModalOverlay>
+
+        <shell:ModalOverlay DataContext="{Binding Workspace.SearchReplace}" x:DataType="vm:SearchReplaceViewModel"
+                            IsOpen="{Binding IsOpen}" CloseCommand="{Binding CloseCommand}"
+                            CardWidth="720" CardMaxHeight="560" CardMargin="0,60,0,0" CardPadding="12">
+            <shell:SearchReplace />
+        </shell:ModalOverlay>
+
+        <shell:ModalOverlay DataContext="{Binding Settings}" x:DataType="vm:SettingsViewModel"
+                            IsOpen="{Binding IsOpen}" CloseCommand="{Binding CloseCommand}"
+                            CardWidth="480" CardMargin="0,60,0,0" CardPadding="20">
+            <shell:SettingsPanel />
+        </shell:ModalOverlay>
+    </Panel>
+</Window>

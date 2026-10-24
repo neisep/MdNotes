@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MdNotes.ViewModels"
+             x:Class="MdNotes.Views.Shell.EmptyState"
+             x:DataType="vm:MainViewModel">
+  <Border Background="{DynamicResource MdSurface}"
+          IsVisible="{Binding !Editor.HasNote}">
+    <StackPanel Spacing="12"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+      <!-- File icon -->
+      <Path Classes="icon"
+             Data="{StaticResource Icon.file-text}"
+             Width="40"
+             Height="40"
+             Stroke="{DynamicResource MdTextFaint}"
+             StrokeThickness="1.5" />
+
+      <!-- Title -->
+      <TextBlock Text="No note is open"
+                 FontSize="16"
+                 Foreground="{DynamicResource MdTextMuted}"
+                 HorizontalAlignment="Center" />
+
+      <!-- Hint grid -->
+      <Grid ColumnDefinitions="Auto,16,Auto"
+            RowDefinitions="Auto,6,Auto">
+        <!-- Row 0: Create new note -->
+        <TextBlock Text="Create new note"
+                   FontSize="13"
+                   Foreground="{DynamicResource MdTextFaint}"
+                   Grid.Row="0"
+                   Grid.Column="0" />
+        <TextBlock Text="Ctrl+N"
+                   FontSize="13"
+                   Foreground="{DynamicResource MdTextFaint}"
+                   FontFamily="Cascadia Code,Consolas,Menlo,monospace"
+                   HorizontalAlignment="Right"
+                   Grid.Row="0"
+                   Grid.Column="2" />
+
+        <!-- Row 2: Quick switcher -->
+        <TextBlock Text="Quick switcher"
+                   FontSize="13"
+                   Foreground="{DynamicResource MdTextFaint}"
+                   Grid.Row="2"
+                   Grid.Column="0" />
+        <TextBlock Text="Ctrl+O"
+                   FontSize="13"
+                   Foreground="{DynamicResource MdTextFaint}"
+                   FontFamily="Cascadia Code,Consolas,Menlo,monospace"
+                   HorizontalAlignment="Right"
+                   Grid.Row="2"
+                   Grid.Column="2" />
+      </Grid>
+    </StackPanel>
+  </Border>
+</UserControl>
