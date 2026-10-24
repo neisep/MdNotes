@@ -20,11 +20,17 @@ How each of these works is in [docs/FEATURES.md](docs/FEATURES.md).
 
 ## Download
 
-Prebuilt single-file executables for Windows and Linux (x64) are on the
-[Releases](https://github.com/neisep/MdNotes/releases) page: `mdnotes-windows-x86_64.exe` and
-`mdnotes-linux-x86_64`. They need nothing else installed. On Linux, make the file executable first
-(`chmod +x mdnotes-linux-x86_64`). The builds are not signed, so Windows SmartScreen may ask before the
-first start. On macOS, build from source as described below.
+Prebuilt builds for Windows and Linux (x64) are on the
+[Releases](https://github.com/neisep/MdNotes/releases) page. They need nothing else installed.
+
+- **Linux:** `mdnotes-linux-x86_64.tar.gz`, compiled ahead of time (Native AOT) for a fast start.
+  It needs glibc 2.34 or newer (Ubuntu 22.04, Debian 12, Fedora 35 or later). Unpack it and run `MdNotes`:
+  `tar -xzf mdnotes-linux-x86_64.tar.gz && ./mdnotes-linux-x86_64/MdNotes`.
+- **Windows:** `mdnotes-windows-x86_64.exe`, a single executable.
+  `mdnotes-windows-x86_64-aot.zip` is an experimental Native AOT build that starts faster: unpack the
+  whole folder and run `MdNotes.exe`. The builds are not signed, so SmartScreen may ask before the
+  first start.
+- **macOS:** build from source as described below.
 
 ## Run
 
@@ -43,6 +49,13 @@ dotnet publish MdNotes -c Release -r <rid> --self-contained -p:PublishSingleFile
 
 `<rid>` is `win-x64`, `linux-x64` or `osx-arm64`. The output is a single executable with no runtime
 dependencies (the `.pdb` files next to it can be deleted).
+
+Or compile ahead of time with Native AOT, which starts faster and is smaller, but must be built on the
+target OS (on Linux it needs `clang` and `zlib1g-dev`). Keep the native libraries next to the executable:
+
+```
+dotnet publish MdNotes -c Release -r <rid> -p:PublishAot=true
+```
 
 ## Test
 

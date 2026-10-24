@@ -9,19 +9,11 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  test:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            rid: linux-x64
-            artifact: MdNotes
-          - os: windows-latest
-            rid: win-x64
-            artifact: MdNotes.exe
-
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -32,19 +24,76 @@ jobs:
       - name: Test
         run: dotnet test -c Release
 
-      - name: Publish
-        run: >
-          dotnet publish MdNotes -c Release -r ${{ matrix.rid }} --self-contained
-          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out
+  linux:
+    needs: [test]
+    runs-on: ubuntu-latest
+    # Native AOT links against the build machine's glibc, so an older base image is what lets the
+    # binary run on older distros. See .github/scripts/build-linux-aot.sh.
+    container: ubuntu:22.04
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            clang zlib1g-dev binutils libicu70 ca-certificates curl git
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (Native AOT)
+        run: bash .github/scripts/build-linux-aot.sh out
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mdnotes-${{ matrix.rid }}
-          path: out/${{ matrix.artifact }}
+          name: mdnotes-linux-x64
+          path: out/mdnotes-linux-x86_64.tar.gz
+
+  windows:
+    needs: [test]
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          # The single-file build stays the main Windows download until AOT has been tried on Windows.
+          - variant: single-file
+            publish: --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          - variant: aot
+            publish: -p:PublishAot=true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish (${{ matrix.variant }})
+        run: dotnet publish MdNotes -c Release -r win-x64 ${{ matrix.publish }} -o out
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          if ('${{ matrix.variant }}' -eq 'aot') {
+            # The executable plus the native DLLs it loads; the .pdb symbols stay out of the download.
+            New-Item -ItemType Directory -Force mdnotes-windows-x86_64 | Out-Null
+            Get-ChildItem out -Include *.exe, *.dll -Recurse | Copy-Item -Destination mdnotes-windows-x86_64
+            Compress-Archive mdnotes-windows-x86_64 release/mdnotes-windows-x86_64-aot.zip
+          } else {
+            Copy-Item out/MdNotes.exe release/mdnotes-windows-x86_64.exe
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mdnotes-win-x64-${{ matrix.variant }}
+          path: release/*
 
   release:
-    needs: [build]
+    needs: [linux, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,13 +104,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-
-      - name: Prepare release assets
-        run: |
-          mkdir -p release
-          cp artifacts/mdnotes-linux-x64/MdNotes release/mdnotes-linux-x86_64
-          chmod +x release/mdnotes-linux-x86_64
-          cp artifacts/mdnotes-win-x64/MdNotes.exe release/mdnotes-windows-x86_64.exe
+          merge-multiple: true
 
       - name: Generate changelog
         run: bash .github/scripts/changelog.sh "${{ github.ref_name }}" > notes.md
@@ -73,5 +116,6 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             --title "${{ github.ref_name }}" \
             --notes-file notes.md \
-            release/mdnotes-linux-x86_64 \
-            release/mdnotes-windows-x86_64.exe
+            artifacts/mdnotes-linux-x86_64.tar.gz \
+            artifacts/mdnotes-windows-x86_64.exe \
+            artifacts/mdnotes-windows-x86_64-aot.zip
